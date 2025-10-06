@@ -2,11 +2,13 @@
 
 import { UserButton, SignInButton, useUser } from '@clerk/nextjs'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import Logo from './Logo'
 
 export default function Navbar() {
   const { isSignedIn } = useUser()
+  const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
 
   useEffect(() => {
@@ -31,32 +33,42 @@ export default function Navbar() {
             </Link>
           </div>
           
-          <div className="hidden md:flex items-center space-x-8">
-            <Link 
-              href="/" 
-              className="text-white/80 hover:text-white transition-colors duration-200 font-medium"
-            >
-              Home
-            </Link>
+          <div className="flex items-center space-x-4">
             {isSignedIn && (
               <>
                 <Link 
+                  href="/" 
+                  className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:shadow-lg ${
+                    pathname === '/' 
+                      ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-500/25' 
+                      : 'bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white hover:shadow-slate-500/25'
+                  }`}
+                >
+                  Home
+                </Link>
+                <Link 
                   href="/chat" 
-                  className="text-white/80 hover:text-white transition-colors duration-200 font-medium"
+                  className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:shadow-lg ${
+                    pathname === '/chat' 
+                      ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-500/25' 
+                      : 'bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white hover:shadow-slate-500/25'
+                  }`}
                 >
                   Chat
                 </Link>
                 <Link 
                   href="/stats" 
-                  className="text-white/80 hover:text-white transition-colors duration-200 font-medium"
+                  className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:shadow-lg ${
+                    pathname === '/stats' 
+                      ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-500/25' 
+                      : 'bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white hover:shadow-slate-500/25'
+                  }`}
                 >
                   Stats
                 </Link>
               </>
             )}
-          </div>
-          
-          <div className="flex items-center space-x-4">
+            
             {isSignedIn ? (
               <UserButton 
                 afterSignOutUrl="/"
@@ -69,7 +81,7 @@ export default function Navbar() {
             ) : (
               <SignInButton mode="modal">
                 <button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25">
-                  Get Started
+                  Log In
                 </button>
               </SignInButton>
             )}
