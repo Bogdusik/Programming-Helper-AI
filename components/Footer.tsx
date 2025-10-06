@@ -48,7 +48,6 @@ const Footer: React.FC = () => {
 
   const currentYear = new Date().getFullYear();
 
-  // Don't render time-related content until mounted
   if (!isMounted) {
     return null;
   }
@@ -66,12 +65,9 @@ const Footer: React.FC = () => {
         <div className="absolute bottom-1/4 left-1/2 w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse opacity-50" style={{ animationDelay: '2s' }}></div>
       </div>
 
-      {/* Grid pattern overlay */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className={`grid grid-cols-1 gap-8 ${isLoaded && isSignedIn ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
-          {/* Brand Section */}
           <div className="md:col-span-2">
             <div className="mb-4">
               <Logo size="lg" showText={true} />
@@ -81,7 +77,6 @@ const Footer: React.FC = () => {
               code reviews, and technical solutions powered by cutting-edge AI technology.
             </p>
             
-            {/* Live Status Indicator */}
             <div className="mt-4 flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
               <span className="text-slate-400 text-xs">System Online</span>
@@ -90,7 +85,6 @@ const Footer: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Links - Only for authenticated users */}
           {isLoaded && isSignedIn ? (
             <div>
               <h4 className="text-white font-semibold mb-4">Quick Links</h4>
@@ -114,7 +108,6 @@ const Footer: React.FC = () => {
               </ul>
             </div>
           ) : (
-            /* Get Started section for non-authenticated users */
             <div>
               <h4 className="text-white font-semibold mb-4">Get Started</h4>
               <ul className="space-y-3">
@@ -138,7 +131,6 @@ const Footer: React.FC = () => {
             </div>
           )}
 
-          {/* Support & Legal */}
           <div>
             <h4 className="text-white font-semibold mb-4">Support</h4>
             <ul className="space-y-3">
@@ -162,7 +154,6 @@ const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom Section */}
         <div className="mt-8 pt-8 border-t border-slate-700/50">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="flex items-center space-x-4">
@@ -175,7 +166,6 @@ const Footer: React.FC = () => {
         </div>
       </div>
 
-      {/* Animated border */}
       <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-pulse"></div>
     </footer>
   );

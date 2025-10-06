@@ -1,1 +1,0 @@
-# programming-helper-ai

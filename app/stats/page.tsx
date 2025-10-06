@@ -4,6 +4,7 @@ import { useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Navbar from '../../components/Navbar'
+import MinimalBackground from '../../components/MinimalBackground'
 import { trpc } from '../../lib/trpc-client'
 
 export default function StatsPage() {
@@ -11,7 +12,6 @@ export default function StatsPage() {
   const router = useRouter()
   const [isMounted, setIsMounted] = useState(false)
   
-  // Load user statistics
   const { data: stats, isLoading: statsLoading, error: statsError } = trpc.stats.getUserStats.useQuery()
 
   useEffect(() => {
@@ -65,19 +65,8 @@ export default function StatsPage() {
     <div className="min-h-screen bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
       <Navbar />
       
-      {/* Animated background elements - only render on client */}
-      {isMounted && (
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-1/4 w-2 h-2 bg-blue-400 rounded-full animate-pulse opacity-60"></div>
-          <div className="absolute top-1/3 right-1/3 w-1 h-1 bg-purple-400 rounded-full animate-pulse opacity-40" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute bottom-1/4 left-1/2 w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse opacity-50" style={{ animationDelay: '2s' }}></div>
-          <div className="absolute top-1/2 right-1/4 w-1 h-1 bg-cyan-400 rounded-full animate-pulse opacity-30" style={{ animationDelay: '3s' }}></div>
-          <div className="absolute bottom-1/3 left-1/3 w-2 h-2 bg-pink-400 rounded-full animate-pulse opacity-40" style={{ animationDelay: '4s' }}></div>
-        </div>
-      )}
-
-      {/* Grid pattern overlay */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
+      {/* Minimal background for stats page */}
+      <MinimalBackground />
       
       <div className="relative pt-20 pb-8 min-h-screen flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
@@ -130,7 +119,6 @@ export default function StatsPage() {
         </div>
       </div>
 
-      {/* Animated border */}
       <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-pulse"></div>
     </div>
   )

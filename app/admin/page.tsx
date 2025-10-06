@@ -32,8 +32,7 @@ export default function AdminPage() {
   if (!isSignedIn) {
     return null
   }
-
-  // Check if user is admin (you can implement this based on your user data)
+  
   const isAdmin = user?.publicMetadata?.role === 'admin'
 
   if (!isAdmin) {
