@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 
 interface AnimatedCounterProps {
   value: number
@@ -8,7 +8,7 @@ interface AnimatedCounterProps {
   className?: string
 }
 
-export default function AnimatedCounter({ value, duration = 2000, className = '' }: AnimatedCounterProps) {
+const AnimatedCounter = memo(function AnimatedCounter({ value, duration = 2000, className = '' }: AnimatedCounterProps) {
   const [displayValue, setDisplayValue] = useState(0)
 
   useEffect(() => {
@@ -19,7 +19,6 @@ export default function AnimatedCounter({ value, duration = 2000, className = ''
       if (!startTime) startTime = currentTime
       const progress = Math.min((currentTime - startTime) / duration, 1)
       
-      // Easing function for smooth animation
       const easeOutCubic = 1 - Math.pow(1 - progress, 3)
       const currentValue = Math.floor(value * easeOutCubic)
       
@@ -44,4 +43,6 @@ export default function AnimatedCounter({ value, duration = 2000, className = ''
       {displayValue.toLocaleString()}
     </span>
   )
-}
+})
+
+export default AnimatedCounter

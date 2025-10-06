@@ -3,7 +3,6 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  // Create a sample admin user
   const adminUser = await prisma.user.upsert({
     where: { id: 'admin-user-id' },
     update: {},
@@ -14,7 +13,6 @@ async function main() {
     },
   })
 
-  // Create a sample regular user
   const regularUser = await prisma.user.upsert({
     where: { id: 'user-id' },
     update: {},
@@ -25,7 +23,6 @@ async function main() {
     },
   })
 
-  // Create sample stats for the regular user
   await prisma.stats.upsert({
     where: { userId: regularUser.id },
     update: {},
