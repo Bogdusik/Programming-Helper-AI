@@ -10,11 +10,10 @@ export default function TRPCProvider({ children }: { children: React.ReactNode }
     defaultOptions: {
       queries: {
         retry: (failureCount, error: any) => {
-          // Don't retry on 404 errors
           if (error?.data?.httpStatus === 404) return false
           return failureCount < 3
         },
-        staleTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: 5 * 60 * 1000,
       },
     },
   }))

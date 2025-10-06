@@ -14,11 +14,9 @@ interface ChatMessage {
 export default function ChatBox() {
   const [message, setMessage] = useState('')
   
-  // tRPC hooks
   const sendMessageMutation = trpc.chat.sendMessage.useMutation()
   const { data: messages = [], refetch: refetchMessages } = trpc.chat.getMessages.useQuery()
 
-  // Load messages on component mount
   useEffect(() => {
     refetchMessages()
   }, [refetchMessages])
@@ -32,18 +30,15 @@ export default function ChatBox() {
 
     try {
       await sendMessageMutation.mutateAsync({ message: messageToSend })
-      // Refetch messages to get the updated list
       await refetchMessages()
     } catch (error) {
       console.error('Error sending message:', error)
-      // Show error to user
       alert('Failed to send message. Please try again.')
     }
   }
 
   return (
     <div className="flex flex-col h-full">
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {messages?.length === 0 && (
           <div className="text-center py-12">
@@ -80,7 +75,6 @@ export default function ChatBox() {
         )}
       </div>
 
-      {/* Input */}
       <form onSubmit={handleSubmit} className="p-6 border-t border-white/10">
         <div className="flex space-x-3">
           <input

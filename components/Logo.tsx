@@ -27,7 +27,6 @@ const Logo: React.FC<LogoProps> = ({
 
   return (
     <div className={`flex items-center space-x-3 ${className}`}>
-      {/* Logo Icon */}
       <div className={`${sizeClasses[size]} relative`}>
         <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg flex items-center justify-center shadow-lg border border-slate-700/50">
           <svg 
@@ -37,7 +36,6 @@ const Logo: React.FC<LogoProps> = ({
             fill="none" 
             className="text-green-400"
           >
-            {/* Left chevron */}
             <path 
               d="M8 6L4 12L8 18" 
               stroke="currentColor" 
@@ -46,7 +44,6 @@ const Logo: React.FC<LogoProps> = ({
               strokeLinejoin="round"
               className="text-green-400"
             />
-            {/* Vertical bar */}
             <path 
               d="M12 6V18" 
               stroke="currentColor" 
@@ -54,7 +51,6 @@ const Logo: React.FC<LogoProps> = ({
               strokeLinecap="round"
               className="text-green-400"
             />
-            {/* Right chevron */}
             <path 
               d="M16 6L20 12L16 18" 
               stroke="currentColor" 
@@ -66,11 +62,9 @@ const Logo: React.FC<LogoProps> = ({
           </svg>
         </div>
         
-        {/* Subtle glow effect */}
         <div className="absolute inset-0 bg-green-400/10 rounded-lg blur-sm -z-10"></div>
       </div>
 
-      {/* Logo Text */}
       {showText && (
         <div className="flex flex-col">
           <span className={`font-bold text-white ${textSizes[size]}`}>

@@ -2,25 +2,26 @@
 
 import { SignInButton, useUser } from '@clerk/nextjs'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Navbar from '../components/Navbar'
 import AnimatedCounter from '../components/AnimatedCounter'
+import SimpleBackground from '../components/SimpleBackground'
+import ViteStyleCard from '../components/ViteStyleCard'
 import { trpc } from '../lib/trpc-client'
 
 export default function Home() {
   const { isSignedIn, isLoaded } = useUser()
   const [isMounted, setIsMounted] = useState(false)
   
-  // Get real-time global statistics
   const { data: globalStats, isLoading: statsLoading, dataUpdatedAt, error: statsError } = trpc.stats.getGlobalStats.useQuery(undefined, {
-    refetchInterval: 30000, // Refetch every 30 seconds
-    refetchOnWindowFocus: true,
-    retry: 2,
-    retryDelay: 1000,
+    refetchInterval: 60000, // Increased to 1 minute for better performance
+    refetchOnWindowFocus: false, // Disabled to reduce unnecessary requests
+    retry: 1, // Reduced retries
+    retryDelay: 2000,
+    staleTime: 30000, // Cache for 30 seconds
   })
 
-  // Format last update time
-  const getLastUpdateTime = () => {
+  const getLastUpdateTime = useMemo(() => {
     if (!dataUpdatedAt) return ''
     const now = new Date()
     const diff = Math.floor((now.getTime() - dataUpdatedAt) / 1000)
@@ -28,39 +29,26 @@ export default function Home() {
     if (diff < 60) return 'Just now'
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
     return `${Math.floor(diff / 3600)}h ago`
-  }
+  }, [dataUpdatedAt])
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-900 relative overflow-hidden">
       <Navbar />
       
-      {/* Animated background elements - only render on client */}
-      {isMounted && (
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-1/4 w-2 h-2 bg-blue-400 rounded-full animate-pulse opacity-60"></div>
-          <div className="absolute top-1/3 right-1/3 w-1 h-1 bg-purple-400 rounded-full animate-pulse opacity-40" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute bottom-1/4 left-1/2 w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse opacity-50" style={{ animationDelay: '2s' }}></div>
-          <div className="absolute top-1/2 right-1/4 w-1 h-1 bg-cyan-400 rounded-full animate-pulse opacity-30" style={{ animationDelay: '3s' }}></div>
-          <div className="absolute bottom-1/3 left-1/3 w-2 h-2 bg-pink-400 rounded-full animate-pulse opacity-40" style={{ animationDelay: '4s' }}></div>
-        </div>
-      )}
-
-      {/* Grid pattern overlay */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
+      {/* Optimized simple background */}
+      <SimpleBackground />
       
-      {/* Hero Section */}
-      <section className="relative pt-20 pb-16 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-green-600/20"></div>
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center animate-fadeInUp">
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white mb-6">
-              Level Up
+              The AI Assistant
               <br />
-              <span className="gradient-text">Your Coding Skills with AI</span>
+              <span className="gradient-text">for Programming</span>
             </h1>
             <p className="text-xl text-white/80 max-w-3xl mx-auto mb-8 leading-relaxed">
               Get instant help with your programming questions. Our AI assistant guides you through code challenges, explains concepts and helps you debug issues.
@@ -78,7 +66,7 @@ export default function Home() {
                 </Link>
               ) : (
                 <SignInButton mode="modal">
-                  <button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-4 rounded-full text-lg font-semibold transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/25 hover:scale-105">
+                  <button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 py-4 rounded-full text-lg font-semibold transition-all duration-200 hover:shadow-xl hover:shadow-green-500/25 hover:scale-105">
                     Get Started
                   </button>
                 </SignInButton>
@@ -88,7 +76,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats Section */}
       <section className="relative py-16">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -98,7 +85,7 @@ export default function Home() {
               <div className="flex items-center justify-center space-x-2 mt-4">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <span className="text-sm text-white/60">
-                  Live data • Updated {getLastUpdateTime()} • Refreshes every 30s
+                  Live data • Updated {getLastUpdateTime} • Refreshes every 30s
                 </span>
               </div>
             )}
@@ -171,48 +158,168 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Section */}
       <section className="relative py-16">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-white mb-4">Our Features</h2>
-            <p className="text-white/60">Everything you need to become a better developer</p>
+            <h2 className="text-4xl font-bold text-white mb-6">Redefining programming experience</h2>
+            <p className="text-xl text-white/70 max-w-3xl mx-auto">Programming Helper AI makes coding assistance simple again</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="glass rounded-2xl p-8 card-hover">
-              <div className="inline-flex items-center justify-center p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl shadow-lg mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <ViteStyleCard
+              title="Instant AI Response"
+              description="On demand AI assistance, no waiting required! Get instant help with your programming questions."
+              icon={
+                <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              }
+              gradient="bg-gradient-to-r from-green-500 to-green-600"
+              features={["Real-time responses", "No waiting time", "Instant feedback"]}
+            />
+
+            <ViteStyleCard
+              title="Smart Code Analysis"
+              description="AI-powered code review that stays accurate regardless of complexity. Advanced analysis for any programming language."
+              icon={
+                <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              }
+              gradient="bg-gradient-to-r from-blue-500 to-blue-600"
+              codeExample="ai.analyze(code) // Returns detailed analysis"
+              features={["Deep code analysis", "Bug detection", "Performance insights"]}
+            />
+
+            <ViteStyleCard
+              title="Multi-Language Support"
+              description="Out-of-the-box support for JavaScript, Python, Java, C++ and more. Universal programming assistance."
+              icon={
                 <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                 </svg>
+              }
+              gradient="bg-gradient-to-r from-purple-500 to-purple-600"
+              features={["JavaScript", "Python", "Java", "C++", "TypeScript"]}
+            />
+
+            <ViteStyleCard
+              title="Optimized Solutions"
+              description="Pre-configured AI responses with best practices and performance optimization. Get production-ready code."
+              icon={
+                <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+              gradient="bg-gradient-to-r from-cyan-500 to-cyan-600"
+              codeExample="ai.optimize(solution) // Returns optimized code"
+              features={["Best practices", "Performance tips", "Clean code patterns"]}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* A shared foundation to build upon */}
+      <section className="relative py-20">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-white mb-6">A shared foundation to build upon</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <ViteStyleCard
+              title="Flexible AI System"
+              description="Our AI extends with well-designed interfaces and a few extra programming-specific options. Built for extensibility."
+              icon={
+                <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              }
+              gradient="bg-gradient-to-r from-green-500 to-green-600"
+              codeExample="const ai = createAssistant({ // user config options })"
+              features={["Extensible architecture", "Plugin system", "Custom configurations"]}
+            />
+
+            <ViteStyleCard
+              title="Fully Typed API"
+              description="Designed to be built on top of. TypeScript support with full type safety and intelligent autocomplete."
+              icon={
+                <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              }
+              gradient="bg-gradient-to-r from-blue-500 to-blue-600"
+              codeExample="interface AIResponse { code: string; explanation: string }"
+              features={["TypeScript support", "IntelliSense", "Type safety"]}
+            />
+
+            <ViteStyleCard
+              title="First class Learning Support"
+              description="It's never been easier to learn programming concepts, or build your own coding skills with guided assistance."
+              icon={
+                <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              }
+              gradient="bg-gradient-to-r from-purple-500 to-purple-600"
+              features={["Step-by-step guidance", "Concept explanations", "Best practices"]}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Loved by the community */}
+      <section className="relative py-20">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-white mb-6">Loved by the community</h2>
+            <p className="text-xl text-white/70 max-w-3xl mx-auto">Don't take our word for it - listen to what our users have to say.</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="glass rounded-2xl p-8 card-hover">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                  RC
+                </div>
+                <div className="ml-4">
+                  <h4 className="text-white font-semibold">Ryan Carniato</h4>
+                  <p className="text-white/60 text-sm">@RyanCarniato</p>
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-white mb-4">Code Assistance</h3>
-              <p className="text-white/70 leading-relaxed">
-                Get help with coding problems, syntax questions, and implementation guidance from our advanced AI.
+              <p className="text-white/80 italic">
+                "I'm loving what Programming Helper AI enables. We've found building with it that it is less a tool but a system of symbiotic AI assistance. While built with programming in mind, it should scale from our simplest questions to complex debugging."
               </p>
             </div>
 
             <div className="glass rounded-2xl p-8 card-hover">
-              <div className="inline-flex items-center justify-center p-4 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl shadow-lg mb-6">
-                <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                  RH
+                </div>
+                <div className="ml-4">
+                  <h4 className="text-white font-semibold">Rich Harris</h4>
+                  <p className="text-white/60 text-sm">@Rich_Harris</p>
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-white mb-4">Debugging Help</h3>
-              <p className="text-white/70 leading-relaxed">
-                Find and fix bugs in your code with AI-powered debugging assistance and step-by-step solutions.
+              <p className="text-white/80 italic">
+                "Programming Helper AI is basically the united nations of programming assistance at this point. I'll be there as a representative of JavaScript developers."
               </p>
             </div>
 
             <div className="glass rounded-2xl p-8 card-hover">
-              <div className="inline-flex items-center justify-center p-4 bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl shadow-lg mb-6">
-                <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                  DE
+                </div>
+                <div className="ml-4">
+                  <h4 className="text-white font-semibold">David East</h4>
+                  <p className="text-white/60 text-sm">@_davideast</p>
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-white mb-4">Learning Support</h3>
-              <p className="text-white/70 leading-relaxed">
-                Learn new programming concepts and best practices with detailed explanations and examples.
+              <p className="text-white/80 italic">
+                "Each and every time I use Programming Helper AI, I feel a true sense of pure and unbridled joy."
               </p>
             </div>
           </div>
@@ -238,7 +345,7 @@ export default function Home() {
               </Link>
             ) : (
               <SignInButton mode="modal">
-                <button className="inline-block bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-4 rounded-full text-lg font-semibold transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/25 hover:scale-105">
+                <button className="inline-block bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 py-4 rounded-full text-lg font-semibold transition-all duration-200 hover:shadow-xl hover:shadow-green-500/25 hover:scale-105">
                   Get Started Free
                 </button>
               </SignInButton>
@@ -247,8 +354,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Animated border */}
-      <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-pulse"></div>
+      <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-green-500 to-transparent animate-pulse"></div>
     </div>
   )
 }

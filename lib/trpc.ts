@@ -30,7 +30,6 @@ export const appRouter = router({
         const { message } = input
         const { user } = ctx
 
-        // Save user message
         await db.message.create({
           data: {
             userId: user.id,
@@ -39,10 +38,8 @@ export const appRouter = router({
           },
         })
 
-        // Generate AI response
         const response = await generateResponse(message)
 
-        // Save assistant response
         await db.message.create({
           data: {
             userId: user.id,
@@ -51,7 +48,6 @@ export const appRouter = router({
           },
         })
 
-        // Update user stats
         await db.stats.upsert({
           where: { userId: user.id },
           update: {
@@ -94,20 +90,17 @@ export const appRouter = router({
     getGlobalStats: publicProcedure
       .query(async () => {
         try {
-          // Get total users
-          const totalUsers = await db.user.count()
-          
-          // Get total messages (questions asked)
-          const totalMessages = await db.message.count({
-            where: { role: 'user' }
-          })
-          
-          // Get total responses
-          const totalResponses = await db.message.count({
-            where: { role: 'assistant' }
-          })
+          // Optimized: Single query with aggregation
+          const [userStats, messageStats] = await Promise.all([
+            db.user.count(),
+            db.message.groupBy({
+              by: ['role'],
+              _count: {
+                role: true
+              }
+            })
+          ])
 
-          // Get active users (users who have asked at least one question)
           const activeUsers = await db.user.count({
             where: {
               messages: {
@@ -118,15 +111,17 @@ export const appRouter = router({
             }
           })
 
+          const userMessages = messageStats.find(stat => stat.role === 'user')?._count.role || 0
+          const assistantMessages = messageStats.find(stat => stat.role === 'assistant')?._count.role || 0
+
           return {
-            totalUsers,
+            totalUsers: userStats,
             activeUsers,
-            totalQuestions: totalMessages,
-            totalSolutions: totalResponses
+            totalQuestions: userMessages,
+            totalSolutions: assistantMessages
           }
         } catch (error) {
           console.error('Error fetching global stats:', error)
-          // Return default values if database is unavailable
           return {
             totalUsers: 0,
             activeUsers: 0,

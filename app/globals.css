@@ -36,7 +36,6 @@ body {
   overflow-x: hidden;
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -54,7 +53,6 @@ body {
   background: var(--primary-dark);
 }
 
-/* Gradient backgrounds */
 .gradient-bg {
   background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
 }
@@ -66,7 +64,6 @@ body {
   background-clip: text;
 }
 
-/* Animations */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -108,14 +105,12 @@ body {
   animation: float 3s ease-in-out infinite;
 }
 
-/* Glass morphism effect */
 .glass {
   background: rgba(30, 41, 59, 0.8);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Card hover effects */
 .card-hover {
   transition: all 0.3s ease;
 }
@@ -125,7 +120,6 @@ body {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
-/* Footer specific styles */
 .bg-grid-pattern {
   background-image: 
     linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
@@ -133,7 +127,6 @@ body {
   background-size: 20px 20px;
 }
 
-/* Animated gradient border */
 @keyframes gradientShift {
   0% {
     background-position: 0% 50%;
@@ -151,7 +144,6 @@ body {
   animation: gradientShift 3s ease infinite;
 }
 
-/* Hover effects for footer links */
 .footer-link {
   position: relative;
   overflow: hidden;
@@ -171,3 +163,5 @@ body {
 .footer-link:hover::before {
   left: 100%;
 }
+
+/* Optimized: Removed heavy animations for better performance */

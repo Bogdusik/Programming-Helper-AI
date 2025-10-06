@@ -8,17 +8,15 @@ export async function getCurrentUser() {
     return null
   }
 
-  // Get or create user in database
   let dbUser = await db.user.findUnique({
     where: { id: user.id }
   })
 
   if (!dbUser) {
-    // Create new user if doesn't exist
     dbUser = await db.user.create({
       data: {
         id: user.id,
-        email: user.emailAddresses[0]?.emailAddress || '', // Get email from Clerk user
+        email: user.emailAddresses[0]?.emailAddress || '',
         role: 'user'
       }
     })
