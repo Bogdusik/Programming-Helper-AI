@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Message from './Message'
 import { trpc } from '../lib/trpc-client'
 
@@ -11,15 +11,86 @@ interface ChatMessage {
   timestamp: Date
 }
 
-export default function ChatBox() {
+interface ChatBoxProps {
+  sessionId?: string
+  onSessionCreated?: (sessionId: string) => void
+}
+
+export default function ChatBox({ sessionId, onSessionCreated }: ChatBoxProps) {
   const [message, setMessage] = useState('')
+  const [optimisticMessages, setOptimisticMessages] = useState<any[]>([])
+  const [isUserAtBottom, setIsUserAtBottom] = useState(true)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   
   const sendMessageMutation = trpc.chat.sendMessage.useMutation()
-  const { data: messages = [], refetch: refetchMessages } = trpc.chat.getMessages.useQuery()
+  const { data: messages = [], refetch: refetchMessages } = trpc.chat.getMessages.useQuery(
+    { sessionId },
+    { enabled: !!sessionId }
+  )
 
+  // Use optimistic messages when available, otherwise use server messages
+  const displayMessages = optimisticMessages.length > 0 ? optimisticMessages : messages
+
+  // Function to scroll to bottom with smooth animation
+  const scrollToBottom = () => {
+    if (isUserAtBottom && messagesContainerRef.current) {
+      const container = messagesContainerRef.current
+      const targetScrollTop = container.scrollHeight
+      
+      // Smooth scroll animation
+      const startScrollTop = container.scrollTop
+      const distance = targetScrollTop - startScrollTop
+      const duration = 300 // 300ms animation
+      let startTime: number | null = null
+
+      const animateScroll = (currentTime: number) => {
+        if (startTime === null) startTime = currentTime
+        const elapsed = currentTime - startTime
+        const progress = Math.min(elapsed / duration, 1)
+        
+        // Easing function for smooth animation
+        const easeOutCubic = 1 - Math.pow(1 - progress, 3)
+        container.scrollTop = startScrollTop + (distance * easeOutCubic)
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateScroll)
+        }
+      }
+      
+      requestAnimationFrame(animateScroll)
+    }
+  }
+
+  // Check if user is at bottom of chat
+  const handleScroll = () => {
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10 // 10px threshold
+      setIsUserAtBottom(isAtBottom)
+    }
+  }
+
+  // Clear optimistic messages when session changes
   useEffect(() => {
-    refetchMessages()
-  }, [refetchMessages])
+    setOptimisticMessages([])
+  }, [sessionId])
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom()
+  }, [displayMessages])
+
+  // Auto-refresh messages every 10 seconds to ensure we don't miss anything
+  useEffect(() => {
+    if (sessionId) {
+      const interval = setInterval(() => {
+        refetchMessages()
+      }, 10000) // 10 seconds
+
+      return () => clearInterval(interval)
+    }
+  }, [sessionId, refetchMessages])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,19 +99,56 @@ export default function ChatBox() {
     const messageToSend = message
     setMessage('')
 
+    // Add user message optimistically
+    const userMessage = {
+      id: `temp-user-${Date.now()}`,
+      role: 'user',
+      content: messageToSend,
+      timestamp: new Date()
+    }
+    
+    setOptimisticMessages(prev => [...prev, userMessage])
+    
+    // Scroll to bottom when adding optimistic message
+    setTimeout(() => scrollToBottom(), 50)
+
     try {
-      await sendMessageMutation.mutateAsync({ message: messageToSend })
+      const result = await sendMessageMutation.mutateAsync({ 
+        message: messageToSend,
+        sessionId 
+      })
+      
+      // If a new session was created, notify parent component
+      if (result.sessionId && onSessionCreated) {
+        onSessionCreated(result.sessionId)
+      }
+      
+      // Refresh messages to show the complete conversation
       await refetchMessages()
+      
+      // Clear optimistic messages since we now have real data
+      setOptimisticMessages([])
+      
+      // Scroll to bottom after new message
+      setTimeout(() => scrollToBottom(), 100)
     } catch (error) {
       console.error('Error sending message:', error)
       alert('Failed to send message. Please try again.')
+      
+      // Remove the optimistic message on error
+      setOptimisticMessages(prev => prev.filter(msg => msg.id !== userMessage.id))
     }
   }
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {messages?.length === 0 && (
+      <div 
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth"
+        style={{ scrollBehavior: 'smooth' }}
+      >
+        {displayMessages?.length === 0 && (
           <div className="text-center py-12">
             <div className="inline-flex items-center justify-center p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl mb-4">
               <svg className="h-8 w-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -52,7 +160,7 @@ export default function ChatBox() {
           </div>
         )}
         
-        {messages?.map((msg: any) => (
+        {displayMessages?.map((msg: any) => (
           <Message
             key={msg.id}
             role={msg.role as 'user' | 'assistant'}
@@ -60,6 +168,24 @@ export default function ChatBox() {
             timestamp={new Date(msg.timestamp)}
           />
         ))}
+        
+        {/* Invisible element for auto-scroll */}
+        <div ref={messagesEndRef} />
+        
+        {/* Scroll to bottom button */}
+        {!isUserAtBottom && displayMessages.length > 0 && (
+          <div className="flex justify-center">
+            <button
+              onClick={() => {
+                setIsUserAtBottom(true)
+                scrollToBottom()
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 shadow-lg"
+            >
+              Scroll to bottom
+            </button>
+          </div>
+        )}
         
         {sendMessageMutation.isPending && (
           <div className="flex justify-start">
