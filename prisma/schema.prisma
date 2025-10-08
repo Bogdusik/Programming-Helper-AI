@@ -18,9 +18,10 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  sessions Session[]
-  messages Message[]
-  stats    Stats?
+  sessions     Session[]
+  messages     Message[]
+  chatSessions ChatSession[]
+  stats        Stats?
 
   @@map("users")
 }
@@ -37,18 +38,36 @@ model Session {
   @@map("sessions")
 }
 
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   @default("New Chat")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([userId, updatedAt])
+  @@map("chat_sessions")
+}
+
 model Message {
   id        String   @id @default(cuid())
   userId    String
+  chatSessionId String?
   role      String   // "user" or "assistant"
   content   String
   timestamp DateTime @default(now())
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatSession ChatSession? @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
 
   // Indexes for better performance
   @@index([userId, timestamp])
+  @@index([chatSessionId, timestamp])
   @@index([role])
   @@map("messages")
 }
