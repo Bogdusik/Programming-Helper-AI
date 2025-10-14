@@ -13,10 +13,10 @@ export async function getCurrentUser() {
   })
 
   if (!dbUser) {
+    // For research compliance, don't store email - use anonymous ID only
     dbUser = await db.user.create({
       data: {
-        id: user.id,
-        email: user.emailAddresses[0]?.emailAddress || '',
+        id: user.id, // This is already anonymous from Clerk
         role: 'user'
       }
     })
