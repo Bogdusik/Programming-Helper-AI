@@ -8,7 +8,6 @@ async function main() {
     update: {},
     create: {
       id: 'admin-user-id',
-      email: 'admin@programming-helper.com',
       role: 'admin',
     },
   })
@@ -18,7 +17,6 @@ async function main() {
     update: {},
     create: {
       id: 'user-id',
-      email: 'user@programming-helper.com',
       role: 'user',
     },
   })

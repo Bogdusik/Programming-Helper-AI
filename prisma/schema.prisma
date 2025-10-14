@@ -12,7 +12,7 @@ datasource db {
 
 model User {
   id        String   @id @default(cuid())
-  email     String   @unique
+  // Remove email for research compliance - use anonymous IDs only
   role      String   @default("user") // "user" or "admin"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

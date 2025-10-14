@@ -7,11 +7,15 @@ import Navbar from '../components/Navbar'
 import AnimatedCounter from '../components/AnimatedCounter'
 import SimpleBackground from '../components/SimpleBackground'
 import ViteStyleCard from '../components/ViteStyleCard'
+import ResearchConsent from '../components/ResearchConsent'
 import { trpc } from '../lib/trpc-client'
+import { hasGivenConsent, saveConsentToStorage } from '../lib/research-consent'
 
 export default function Home() {
   const { isSignedIn, isLoaded } = useUser()
   const [isMounted, setIsMounted] = useState(false)
+  const [showConsent, setShowConsent] = useState(false)
+  const [hasConsent, setHasConsent] = useState(false)
   
   const { data: globalStats, isLoading: statsLoading, dataUpdatedAt, error: statsError } = trpc.stats.getGlobalStats.useQuery(undefined, {
     refetchInterval: 60000, // Increased to 1 minute for better performance
@@ -33,11 +37,31 @@ export default function Home() {
 
   useEffect(() => {
     setIsMounted(true)
-  }, [])
+    
+    // Check if user has given research consent
+    if (isLoaded && isSignedIn) {
+      const consent = hasGivenConsent()
+      setHasConsent(consent)
+      if (!consent) {
+        setShowConsent(true)
+      }
+    }
+  }, [isLoaded, isSignedIn])
+
+  const handleConsent = (consent: boolean) => {
+    saveConsentToStorage(consent)
+    setHasConsent(consent)
+    setShowConsent(false)
+  }
 
   return (
     <div className="min-h-screen bg-slate-900 relative overflow-hidden">
       <Navbar />
+      
+      {/* Research Consent Modal */}
+      {showConsent && (
+        <ResearchConsent onConsent={handleConsent} />
+      )}
       
       {/* Optimized simple background */}
       <SimpleBackground />
