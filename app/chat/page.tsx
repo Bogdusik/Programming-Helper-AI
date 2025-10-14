@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import Navbar from '../../components/Navbar'
 import ChatBox from '../../components/ChatBox'
 import ChatSidebar from '../../components/ChatSidebar'
+import { hasGivenConsent } from '../../lib/research-consent'
 
 export default function ChatPage() {
   const { isSignedIn, isLoaded } = useUser()
@@ -16,6 +17,11 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
+      router.push('/')
+    }
+    
+    // Check research consent
+    if (isLoaded && isSignedIn && !hasGivenConsent()) {
       router.push('/')
     }
   }, [isLoaded, isSignedIn, router])
