@@ -38,6 +38,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# swc cache
+.swc/
+
+# prisma
 /src/generated/prisma
 
 # research documentation
