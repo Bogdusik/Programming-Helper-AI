@@ -10,12 +10,10 @@ import { trpc } from '../../lib/trpc-client'
 export default function StatsPage() {
   const { isSignedIn, isLoaded } = useUser()
   const router = useRouter()
-  const [isMounted, setIsMounted] = useState(false)
   
   const { data: stats, isLoading: statsLoading, error: statsError } = trpc.stats.getUserStats.useQuery()
 
   useEffect(() => {
-    setIsMounted(true)
     if (isLoaded && !isSignedIn) {
       router.push('/')
     }
@@ -111,7 +109,7 @@ export default function StatsPage() {
             <div className="text-center">
               <h3 className="text-2xl font-bold text-white mb-4">Activity Summary</h3>
               <p className="text-white/70 text-lg leading-relaxed max-w-2xl mx-auto">
-                You've asked <span className="gradient-text font-semibold">{stats?.questionsAsked || 0}</span> questions and received helpful AI assistance. 
+                You&apos;ve asked <span className="gradient-text font-semibold">{stats?.questionsAsked || 0}</span> questions and received helpful AI assistance. 
                 Keep up the great work and continue your programming journey!
               </p>
             </div>
