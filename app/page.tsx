@@ -13,7 +13,6 @@ import { hasGivenConsent, saveConsentToStorage } from '../lib/research-consent'
 
 export default function Home() {
   const { isSignedIn, isLoaded } = useUser()
-  const [isMounted, setIsMounted] = useState(false)
   const [showConsent, setShowConsent] = useState(false)
   const [hasConsent, setHasConsent] = useState(false)
   
@@ -36,8 +35,6 @@ export default function Home() {
   }, [dataUpdatedAt])
 
   useEffect(() => {
-    setIsMounted(true)
-    
     // Check if user has given research consent
     if (isLoaded && isSignedIn) {
       const consent = hasGivenConsent()
@@ -298,7 +295,7 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-6">Loved by the community</h2>
-            <p className="text-xl text-white/70 max-w-3xl mx-auto">Don't take our word for it - listen to what our users have to say.</p>
+            <p className="text-xl text-white/70 max-w-3xl mx-auto">Don&apos;t take our word for it - listen to what our users have to say.</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -313,7 +310,7 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-white/80 italic">
-                "I'm loving what Programming Helper AI enables. We've found building with it that it is less a tool but a system of symbiotic AI assistance. While built with programming in mind, it should scale from our simplest questions to complex debugging."
+                &quot;I&apos;m loving what Programming Helper AI enables. We&apos;ve found building with it that it is less a tool but a system of symbiotic AI assistance. While built with programming in mind, it should scale from our simplest questions to complex debugging.&quot;
               </p>
             </div>
 
@@ -328,7 +325,7 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-white/80 italic">
-                "Programming Helper AI is basically the united nations of programming assistance at this point. I'll be there as a representative of JavaScript developers."
+                &quot;Programming Helper AI is basically the united nations of programming assistance at this point. I&apos;ll be there as a representative of JavaScript developers.&quot;
               </p>
             </div>
 
@@ -343,7 +340,7 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-white/80 italic">
-                "Each and every time I use Programming Helper AI, I feel a true sense of pure and unbridled joy."
+                &quot;Each and every time I use Programming Helper AI, I feel a true sense of pure and unbridled joy.&quot;
               </p>
             </div>
           </div>
