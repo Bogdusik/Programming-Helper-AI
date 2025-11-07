@@ -11,13 +11,13 @@ interface LogEntry {
   message: string
   timestamp: Date
   userId?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 class Logger {
   private logs: LogEntry[] = []
 
-  log(level: LogLevel, message: string, userId?: string, metadata?: Record<string, any>) {
+  log(level: LogLevel, message: string, userId?: string, metadata?: Record<string, unknown>) {
     const entry: LogEntry = {
       level,
       message,
@@ -41,32 +41,30 @@ class Logger {
     }
   }
 
-  error(message: string, userId?: string, metadata?: Record<string, any>) {
+  error(message: string, userId?: string, metadata?: Record<string, unknown>) {
     this.log(LogLevel.ERROR, message, userId, metadata)
   }
 
-  warn(message: string, userId?: string, metadata?: Record<string, any>) {
+  warn(message: string, userId?: string, metadata?: Record<string, unknown>) {
     this.log(LogLevel.WARN, message, userId, metadata)
   }
 
-  info(message: string, userId?: string, metadata?: Record<string, any>) {
+  info(message: string, userId?: string, metadata?: Record<string, unknown>) {
     this.log(LogLevel.INFO, message, userId, metadata)
   }
 
-  debug(message: string, userId?: string, metadata?: Record<string, any>) {
+  debug(message: string, userId?: string, metadata?: Record<string, unknown>) {
     this.log(LogLevel.DEBUG, message, userId, metadata)
   }
 
-  private async sendToLoggingService(entry: LogEntry) {
-    try {
-      // Send to your logging service (e.g., LogRocket, Sentry, etc.)
-      // await fetch('/api/logs', {
-      //   method: 'POST',
-      //   body: JSON.stringify(entry)
-      // })
-    } catch (error) {
-      console.error('Failed to send log:', error)
-    }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private async sendToLoggingService(_entry: LogEntry) {
+    // Send to your logging service (e.g., LogRocket, Sentry, etc.)
+    // This is a placeholder for future implementation
+    // await fetch('/api/logs', {
+    //   method: 'POST',
+    //   body: JSON.stringify(_entry)
+    // })
   }
 
   getLogs() {

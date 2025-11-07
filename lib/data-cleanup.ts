@@ -79,9 +79,8 @@ export async function deleteUserData(userId: string) {
       where: { userId }
     })
 
-    await db.session.deleteMany({
-      where: { userId }
-    })
+    // Note: Session model was removed as it was unused
+    // All session management is handled by ChatSession
 
     await db.user.delete({
       where: { id: userId }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import { trpc } from '../lib/trpc-client'
 
 interface ChatSession {
@@ -38,28 +39,36 @@ export default function ChatSidebar({ currentSessionId, onSessionSelect, onNewCh
     }
   }, [refreshTrigger, refetchSessions])
 
-  // Auto-refresh every 30 seconds to keep data in sync
+  // Optimized: Only refetch when window regains focus
+  // This reduces unnecessary API calls
   useEffect(() => {
-    const interval = setInterval(() => {
+    const handleFocus = () => {
       refetchSessions()
-    }, 30000) // 30 seconds
-
-    return () => clearInterval(interval)
-  }, [refetchSessions])
+    }
+    
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Empty deps - only add listener once, refetchSessions is stable from React Query
 
   const handleDeleteSession = async (sessionId: string) => {
-    if (confirm('Are you sure you want to delete this chat?')) {
-      try {
-        await deleteSessionMutation.mutateAsync({ sessionId })
-        await refetchSessions()
+    // Use toast.promise for better UX
+    const deletePromise = deleteSessionMutation.mutateAsync({ sessionId })
+    
+    toast.promise(deletePromise, {
+      loading: 'Deleting chat...',
+      success: () => {
+        refetchSessions()
         if (currentSessionId === sessionId) {
           onNewChat()
         }
-      } catch (error) {
+        return 'Chat deleted successfully'
+      },
+      error: (error: unknown) => {
         console.error('Error deleting session:', error)
-        alert('Failed to delete chat. Please try again.')
-      }
-    }
+        return error instanceof Error ? error.message : 'Failed to delete chat. Please try again.'
+      },
+    })
   }
 
   const handleEditTitle = (session: ChatSession) => {
@@ -77,7 +86,8 @@ export default function ChatSidebar({ currentSessionId, onSessionSelect, onNewCh
         await refetchSessions()
       } catch (error) {
         console.error('Error updating title:', error)
-        alert('Failed to update title. Please try again.')
+        const errorMessage = error instanceof Error ? error.message : 'Failed to update title. Please try again.'
+        toast.error(errorMessage)
       }
     }
     setIsEditing(null)

@@ -5,11 +5,22 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import Logo from './Logo'
+import { trpc } from '@/lib/trpc-client'
 
 export default function Navbar() {
-  const { isSignedIn } = useUser()
+  const { isSignedIn, user } = useUser()
   const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
+  
+  // Check if user is admin by checking their role in the database
+  const { data: userRole } = trpc.auth.getMyRole.useQuery(undefined, {
+    enabled: isSignedIn,
+    retry: false,
+    refetchOnWindowFocus: false
+  })
+  
+  // Also check Clerk publicMetadata as fallback
+  const isAdmin = user?.publicMetadata?.role === 'admin' || userRole?.role === 'admin'
 
   useEffect(() => {
     const handleScroll = () => {
@@ -66,6 +77,18 @@ export default function Navbar() {
                 >
                   Stats
                 </Link>
+                {isAdmin && (
+                  <Link 
+                    href="/admin" 
+                    className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:shadow-lg ${
+                      pathname === '/admin' 
+                        ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-500/25' 
+                        : 'bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white hover:shadow-slate-500/25'
+                    }`}
+                  >
+                    Admin
+                  </Link>
+                )}
               </>
             )}
             
