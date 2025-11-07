@@ -2,14 +2,14 @@
 interface AnalyticsEvent {
   event: string
   userId?: string
-  properties?: Record<string, any>
+  properties?: Record<string, unknown>
   timestamp: Date
 }
 
 class Analytics {
   private events: AnalyticsEvent[] = []
 
-  track(event: string, properties?: Record<string, any>, userId?: string) {
+  track(event: string, properties?: Record<string, unknown>, userId?: string) {
     const analyticsEvent: AnalyticsEvent = {
       event,
       userId,
@@ -27,7 +27,8 @@ class Analytics {
     console.log('Analytics:', analyticsEvent)
   }
 
-  private async sendToAnalytics(event: AnalyticsEvent) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private async sendToAnalytics(_event: AnalyticsEvent) {
     try {
       // Send to your analytics service (e.g., PostHog, Mixpanel, etc.)
       // await fetch('/api/analytics', {
@@ -51,11 +52,11 @@ class Analytics {
 export const analytics = new Analytics()
 
 // Usage tracking functions
-export const trackUserAction = (action: string, userId?: string, properties?: Record<string, any>) => {
+export const trackUserAction = (action: string, userId?: string, properties?: Record<string, unknown>) => {
   analytics.track(`user.${action}`, properties, userId)
 }
 
-export const trackError = (error: string, userId?: string, properties?: Record<string, any>) => {
+export const trackError = (error: string, userId?: string, properties?: Record<string, unknown>) => {
   analytics.track('error.occurred', { error, ...properties }, userId)
 }
 

@@ -1,15 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import toast from 'react-hot-toast'
 import Message from './Message'
 import { trpc } from '../lib/trpc-client'
-
-interface ChatMessage {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: Date
-}
 
 interface ChatBoxProps {
   sessionId?: string
@@ -18,7 +12,7 @@ interface ChatBoxProps {
 
 export default function ChatBox({ sessionId, onSessionCreated }: ChatBoxProps) {
   const [message, setMessage] = useState('')
-  const [optimisticMessages, setOptimisticMessages] = useState<any[]>([])
+  const [optimisticMessages, setOptimisticMessages] = useState<Array<{ id: string; role: 'user' | 'assistant'; content: string; timestamp: Date }>>([])
   const [isUserAtBottom, setIsUserAtBottom] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
@@ -79,18 +73,22 @@ export default function ChatBox({ sessionId, onSessionCreated }: ChatBoxProps) {
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom()
-  }, [displayMessages])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayMessages]) // scrollToBottom is stable, doesn't need to be in deps
 
-  // Auto-refresh messages every 10 seconds to ensure we don't miss anything
+  // Optimized: Only refetch when window regains focus (user comes back to tab)
+  // This reduces unnecessary API calls while maintaining data freshness
   useEffect(() => {
-    if (sessionId) {
-      const interval = setInterval(() => {
-        refetchMessages()
-      }, 10000) // 10 seconds
-
-      return () => clearInterval(interval)
+    if (!sessionId) return
+    
+    const handleFocus = () => {
+      refetchMessages()
     }
-  }, [sessionId, refetchMessages])
+    
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]) // Only depend on sessionId, not refetchMessages to avoid re-adding listeners
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -133,7 +131,8 @@ export default function ChatBox({ sessionId, onSessionCreated }: ChatBoxProps) {
       setTimeout(() => scrollToBottom(), 100)
     } catch (error) {
       console.error('Error sending message:', error)
-      alert('Failed to send message. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send message. Please try again.'
+      toast.error(errorMessage)
       
       // Remove the optimistic message on error
       setOptimisticMessages(prev => prev.filter(msg => msg.id !== userMessage.id))
@@ -160,7 +159,7 @@ export default function ChatBox({ sessionId, onSessionCreated }: ChatBoxProps) {
           </div>
         )}
         
-        {displayMessages?.map((msg: any) => (
+        {displayMessages?.map((msg) => (
           <Message
             key={msg.id}
             role={msg.role as 'user' | 'assistant'}

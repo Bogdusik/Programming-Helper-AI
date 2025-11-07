@@ -1,23 +1,47 @@
 import OpenAI from 'openai'
+import { getSystemPrompt } from './prompts'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-export async function generateResponse(message: string): Promise<string> {
+export async function generateResponse(
+  message: string,
+  conversationHistory?: Array<{ role: 'user' | 'assistant', content: string }>
+): Promise<string> {
   try {
+    // Get specialized system prompt based on the message and conversation history
+    const systemPrompt = getSystemPrompt(message, conversationHistory)
+    
+    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+      {
+        role: "system",
+        content: systemPrompt
+      }
+    ]
+    
+    // Add conversation history (limit to last 20 messages to avoid token limits)
+    if (conversationHistory && conversationHistory.length > 0) {
+      // Take last 20 messages to stay within token limits
+      const recentHistory = conversationHistory.slice(-20)
+      
+      recentHistory.forEach(msg => {
+        messages.push({
+          role: msg.role === 'user' ? 'user' : 'assistant',
+          content: msg.content
+        })
+      })
+    }
+    
+    // Add current message
+    messages.push({
+      role: "user",
+      content: message
+    })
+    
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: "You are a helpful programming assistant. Provide clear, concise, and accurate answers to programming questions. When providing code examples, make sure they are well-formatted and include comments where appropriate."
-        },
-        {
-          role: "user",
-          content: message
-        }
-      ],
+      messages,
       max_tokens: 1000,
       temperature: 0.7,
     })

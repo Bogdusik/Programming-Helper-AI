@@ -5,7 +5,7 @@ import { getCurrentUser } from './auth'
 import { generateResponse, generateChatTitle, analyzeQuestionType } from './openai'
 import { rateLimit } from './rate-limit'
 import { logger } from './logger'
-import { trackUserAction, trackError } from './analytics'
+import { trackUserAction } from './analytics'
 
 const t = initTRPC.create()
 
@@ -23,6 +23,17 @@ const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       user,
     },
   })
+})
+
+const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  const { user } = ctx
+  if (user.role !== 'admin') {
+    throw new TRPCError({ 
+      code: 'FORBIDDEN',
+      message: 'Admin access required' 
+    })
+  }
+  return next({ ctx })
 })
 
 export const appRouter = router({
@@ -140,18 +151,42 @@ export const appRouter = router({
           currentSessionId = session.id
         }
 
-        // Create user message
+        // Get conversation history for context (last 20 messages)
+        let conversationHistory: Array<{ role: 'user' | 'assistant', content: string }> = []
+        
+        if (currentSessionId) {
+          const previousMessages = await db.message.findMany({
+            where: { 
+              userId: user.id,
+              chatSessionId: currentSessionId 
+            },
+            orderBy: { timestamp: 'asc' },
+            take: 20 // Last 20 messages for context
+          })
+          
+          conversationHistory = previousMessages.map(msg => ({
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content
+          }))
+        }
+
+        // Analyze question type first (before creating message to cache it)
+        const questionType = await analyzeQuestionType(message)
+
+        // Create user message with cached question type
         await db.message.create({
           data: {
             userId: user.id,
             chatSessionId: currentSessionId,
             role: 'user',
             content: message,
+            questionType: questionType, // Cache the question type
           },
         })
 
         const startTime = Date.now()
-        const response = await generateResponse(message)
+        // Generate response with conversation history for context
+        const response = await generateResponse(message, conversationHistory)
         const responseTime = (Date.now() - startTime) / 1000 // Convert to seconds
         
         // Log successful message
@@ -164,9 +199,6 @@ export const appRouter = router({
           messageLength: message.length,
           responseTime 
         })
-        
-        // Analyze question type
-        const questionType = await analyzeQuestionType(message)
 
         // Create assistant message
         await db.message.create({
@@ -211,24 +243,25 @@ export const appRouter = router({
           // Calculate new average response time
           const newAvgResponseTime = ((existingStats.avgResponseTime * existingStats.questionsAsked) + responseTime) / (existingStats.questionsAsked + 1)
           
-          // Get all user messages to analyze most frequent type
+          // Get all user messages with cached question types (optimized - no re-analysis needed)
           const userMessages = await db.message.findMany({
             where: { 
               userId: user.id,
-              role: 'user'
+              role: 'user',
+              questionType: { not: null } // Only get messages with cached types
             },
             orderBy: { timestamp: 'desc' },
-            take: 10 // Analyze last 10 questions
+            take: 10, // Analyze last 10 questions
+            select: {
+              questionType: true
+            }
           })
           
-          // Count question types (simplified - in real app you'd store types in DB)
+          // Count question types using cached values (much faster!)
           const typeCounts: Record<string, number> = {}
           for (const msg of userMessages) {
-            try {
-              const msgType = await analyzeQuestionType(msg.content)
-              typeCounts[msgType] = (typeCounts[msgType] || 0) + 1
-            } catch (error) {
-              // Skip if analysis fails
+            if (msg.questionType) {
+              typeCounts[msg.questionType] = (typeCounts[msg.questionType] || 0) + 1
             }
           }
           
@@ -288,6 +321,17 @@ export const appRouter = router({
       }),
   }),
 
+  auth: router({
+    getMyRole: protectedProcedure
+      .query(async ({ ctx }) => {
+        const { user } = ctx
+        return {
+          role: user.role,
+          id: user.id
+        }
+      }),
+  }),
+
   stats: router({
     getUserStats: protectedProcedure
       .query(async ({ ctx }) => {
@@ -334,13 +378,307 @@ export const appRouter = router({
             totalSolutions: assistantMessages
           }
         } catch (error) {
-          console.error('Error fetching global stats:', error)
+          // Silently handle database connection errors for public endpoint
+          // Only log a brief message in development mode
+          if (process.env.NODE_ENV === 'development') {
+            const errorMessage = error instanceof Error ? error.message : String(error)
+            // Only log if it's a connection error (not other DB errors)
+            if (errorMessage.includes('Can\'t reach database') || errorMessage.includes('connect')) {
+              console.warn('⚠️  Database connection issue - stats will show 0. Make sure PostgreSQL is running and run: npm run db:push')
+            } else {
+              console.error('Error fetching global stats:', errorMessage)
+            }
+          }
           return {
             totalUsers: 0,
             activeUsers: 0,
             totalQuestions: 0,
             totalSolutions: 0
           }
+        }
+      }),
+  }),
+
+  admin: router({
+    getDashboardStats: adminProcedure
+      .query(async () => {
+        try {
+          const now = new Date()
+          const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+          const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+          // Get user statistics
+          const [totalUsers, activeUsers24h, activeUsers7d, newUsers24h, newUsers7d] = await Promise.all([
+            db.user.count(),
+            db.user.count({
+              where: {
+                messages: {
+                  some: {
+                    timestamp: { gte: last24Hours }
+                  }
+                }
+              }
+            }),
+            db.user.count({
+              where: {
+                messages: {
+                  some: {
+                    timestamp: { gte: last7Days }
+                  }
+                }
+              }
+            }),
+            db.user.count({
+              where: {
+                createdAt: { gte: last24Hours }
+              }
+            }),
+            db.user.count({
+              where: {
+                createdAt: { gte: last7Days }
+              }
+            })
+          ])
+
+          // Get message statistics
+          const [totalMessages, messages24h, messages7d] = await Promise.all([
+            db.message.count(),
+            db.message.count({
+              where: {
+                timestamp: { gte: last24Hours }
+              }
+            }),
+            db.message.count({
+              where: {
+                timestamp: { gte: last7Days }
+              }
+            })
+          ])
+
+          // Get message distribution by role
+          const messageStats = await db.message.groupBy({
+            by: ['role'],
+            _count: {
+              role: true
+            }
+          })
+
+          const userMessages = messageStats.find(stat => stat.role === 'user')?._count.role || 0
+          const assistantMessages = messageStats.find(stat => stat.role === 'assistant')?._count.role || 0
+
+          // Get chat sessions statistics
+          const [totalSessions, sessions24h, sessions7d] = await Promise.all([
+            db.chatSession.count(),
+            db.chatSession.count({
+              where: {
+                createdAt: { gte: last24Hours }
+              }
+            }),
+            db.chatSession.count({
+              where: {
+                createdAt: { gte: last7Days }
+              }
+            })
+          ])
+
+          // Get question type distribution
+          const questionTypes = await db.stats.findMany({
+            where: {
+              mostFrequentResponseType: { not: null }
+            },
+            select: {
+              mostFrequentResponseType: true
+            }
+          })
+
+          const typeCounts: Record<string, number> = {}
+          questionTypes.forEach(stat => {
+            if (stat.mostFrequentResponseType) {
+              typeCounts[stat.mostFrequentResponseType] = (typeCounts[stat.mostFrequentResponseType] || 0) + 1
+            }
+          })
+
+          // Calculate average response time
+          const allStats = await db.stats.findMany({
+            where: {
+              avgResponseTime: { gt: 0 }
+            },
+            select: {
+              avgResponseTime: true
+            }
+          })
+
+          const avgResponseTime = allStats.length > 0
+            ? allStats.reduce((sum, stat) => sum + stat.avgResponseTime, 0) / allStats.length
+            : 0
+
+          return {
+            users: {
+              total: totalUsers,
+              active24h: activeUsers24h,
+              active7d: activeUsers7d,
+              new24h: newUsers24h,
+              new7d: newUsers7d
+            },
+            messages: {
+              total: totalMessages,
+              last24h: messages24h,
+              last7d: messages7d,
+              userMessages,
+              assistantMessages
+            },
+            sessions: {
+              total: totalSessions,
+              last24h: sessions24h,
+              last7d: sessions7d
+            },
+            analytics: {
+              avgResponseTime: Math.round(avgResponseTime * 10) / 10, // Round to 1 decimal
+              questionTypeDistribution: typeCounts
+            }
+          }
+        } catch (error) {
+          logger.error('Error fetching admin dashboard stats', undefined, { error })
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to fetch dashboard statistics'
+          })
+        }
+      }),
+
+    getUsers: adminProcedure
+      .input(z.object({
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(100).default(20),
+        search: z.string().optional()
+      }))
+      .query(async ({ input }) => {
+        const { page, limit, search } = input
+        const skip = (page - 1) * limit
+
+        const where = search
+          ? {
+              id: {
+                contains: search
+              }
+            }
+          : {}
+
+        const [users, total] = await Promise.all([
+          db.user.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: { createdAt: 'desc' },
+            include: {
+              _count: {
+                select: {
+                  messages: true,
+                  chatSessions: true
+                }
+              }
+            }
+          }),
+          db.user.count({ where })
+        ])
+
+        return {
+          users,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit)
+          }
+        }
+      }),
+
+    exportData: adminProcedure
+      .input(z.object({
+        format: z.enum(['json', 'markdown', 'txt']).default('json')
+      }))
+      .mutation(async ({ input }) => {
+        const { format } = input
+        
+        // Get all sessions with messages
+        const sessions = await db.chatSession.findMany({
+          include: {
+            messages: {
+              orderBy: { timestamp: 'asc' }
+            },
+            user: {
+              select: {
+                id: true,
+                role: true
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        })
+        
+        switch (format) {
+          case 'json':
+            return {
+              format: 'json',
+              data: JSON.stringify(sessions, null, 2),
+              filename: `admin-export-${Date.now()}.json`,
+              mimeType: 'application/json'
+            }
+            
+          case 'markdown':
+            let markdown = '# Admin Data Export\n\n'
+            markdown += `*Generated: ${new Date().toLocaleString()}*\n\n`
+            markdown += `## Summary\n\n`
+            markdown += `- Total Sessions: ${sessions.length}\n`
+            markdown += `- Total Messages: ${sessions.reduce((sum, s) => sum + s.messages.length, 0)}\n\n`
+            markdown += `---\n\n`
+            
+            sessions.forEach((session, idx) => {
+              markdown += `## Session ${idx + 1}: ${session.title}\n\n`
+              markdown += `*Created: ${session.createdAt.toLocaleString()}*\n`
+              markdown += `*User ID: ${session.userId}*\n\n`
+              
+              session.messages.forEach(msg => {
+                markdown += `### ${msg.role === 'user' ? 'User' : 'AI Assistant'}\n`
+                markdown += `${msg.content}\n\n`
+                markdown += `*${msg.timestamp.toLocaleString()}*\n\n---\n\n`
+              })
+            })
+            
+            return {
+              format: 'markdown',
+              data: markdown,
+              filename: `admin-export-${Date.now()}.md`,
+              mimeType: 'text/markdown'
+            }
+            
+          case 'txt':
+            let text = 'ADMIN DATA EXPORT\n'
+            text += '='.repeat(50) + '\n\n'
+            text += `Generated: ${new Date().toLocaleString()}\n`
+            text += `Total Sessions: ${sessions.length}\n`
+            text += `Total Messages: ${sessions.reduce((sum, s) => sum + s.messages.length, 0)}\n`
+            text += '='.repeat(50) + '\n\n'
+            
+            sessions.forEach((session, idx) => {
+              text += `SESSION ${idx + 1}: ${session.title}\n`
+              text += `Created: ${session.createdAt.toLocaleString()}\n`
+              text += `User ID: ${session.userId}\n`
+              text += '-'.repeat(50) + '\n\n'
+              
+              session.messages.forEach(msg => {
+                text += `[${msg.role.toUpperCase()}] ${msg.timestamp.toLocaleString()}\n`
+                text += `${msg.content}\n\n`
+              })
+              text += '\n' + '='.repeat(50) + '\n\n'
+            })
+            
+            return {
+              format: 'txt',
+              data: text,
+              filename: `admin-export-${Date.now()}.txt`,
+              mimeType: 'text/plain'
+            }
         }
       }),
   }),

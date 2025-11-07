@@ -9,8 +9,11 @@ export default function TRPCProvider({ children }: { children: React.ReactNode }
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        retry: (failureCount, error: any) => {
-          if (error?.data?.httpStatus === 404) return false
+        retry: (failureCount, error: unknown) => {
+          if (error && typeof error === 'object' && 'data' in error) {
+            const errorData = error.data as { httpStatus?: number }
+            if (errorData.httpStatus === 404) return false
+          }
           return failureCount < 3
         },
         staleTime: 5 * 60 * 1000,

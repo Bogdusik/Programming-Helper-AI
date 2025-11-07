@@ -55,7 +55,7 @@ function DefaultErrorFallback({ error, resetError }: { error?: Error; resetError
         
         <h2 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h2>
         <p className="text-gray-600 mb-6">
-          We're sorry, but something unexpected happened. Please try again.
+          We&apos;re sorry, but something unexpected happened. Please try again.
         </p>
         
         {process.env.NODE_ENV === 'development' && error && (
