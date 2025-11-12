@@ -3,9 +3,12 @@ import { z } from 'zod'
 import { db } from './db'
 import { getCurrentUser } from './auth'
 import { generateResponse, generateChatTitle, analyzeQuestionType } from './openai'
+import { detectLanguage } from './prompts'
 import { rateLimit } from './rate-limit'
 import { logger } from './logger'
 import { trackUserAction } from './analytics'
+import { checkPostAssessmentEligibility } from './assessment-utils'
+import { sendContactEmail } from './email'
 
 const t = initTRPC.create()
 
@@ -172,6 +175,20 @@ export const appRouter = router({
 
         // Analyze question type first (before creating message to cache it)
         const questionType = await analyzeQuestionType(message)
+        
+        // Detect language from message
+        const detectedLanguage = detectLanguage(message)
+        
+        // Get user's primary language as fallback
+        const userData = await db.user.findUnique({
+          where: { id: user.id },
+          select: { primaryLanguage: true, preferredLanguages: true },
+        })
+        
+        // Use detected language, or fall back to primary language, or 'general'
+        const languageToUse = detectedLanguage !== 'general' 
+          ? detectedLanguage 
+          : (userData?.primaryLanguage || 'general')
 
         // Create user message with cached question type
         await db.message.create({
@@ -287,6 +304,28 @@ export const appRouter = router({
               questionsAsked: 1,
               avgResponseTime: responseTime,
               mostFrequentResponseType: questionType,
+            },
+          })
+        }
+
+        // Update LanguageProgress for the detected/used language
+        if (languageToUse !== 'general') {
+          await db.languageProgress.upsert({
+            where: {
+              userId_language: {
+                userId: user.id,
+                language: languageToUse,
+              },
+            },
+            create: {
+              userId: user.id,
+              language: languageToUse,
+              questionsAsked: 1,
+              lastUsedAt: new Date(),
+            },
+            update: {
+              questionsAsked: { increment: 1 },
+              lastUsedAt: new Date(),
             },
           })
         }
@@ -680,6 +719,669 @@ export const appRouter = router({
               mimeType: 'text/plain'
             }
         }
+      }),
+  }),
+
+  profile: router({
+    updateProfile: protectedProcedure
+      .input(z.object({
+        experience: z.string().optional(),
+        focusAreas: z.array(z.string()).optional(),
+        confidence: z.number().min(1).max(5).optional(),
+        aiExperience: z.string().optional(),
+        preferredLanguages: z.array(z.string()).optional(),
+        primaryLanguage: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { user } = ctx
+        
+        // Update user profile
+        const updatedUser = await db.user.update({
+          where: { id: user.id },
+          data: {
+            selfReportedLevel: input.experience,
+            learningGoals: input.focusAreas,
+            initialConfidence: input.confidence,
+            aiExperience: input.aiExperience,
+            preferredLanguages: input.preferredLanguages,
+            primaryLanguage: input.primaryLanguage,
+            profileCompleted: true,
+          },
+        })
+
+        // Create or update user profile
+        await db.userProfile.upsert({
+          where: { userId: user.id },
+          create: {
+            userId: user.id,
+            experience: input.experience,
+            focusAreas: input.focusAreas || [],
+            confidence: input.confidence,
+            aiExperience: input.aiExperience,
+          },
+          update: {
+            experience: input.experience,
+            focusAreas: input.focusAreas,
+            confidence: input.confidence,
+            aiExperience: input.aiExperience,
+          },
+        })
+
+        // Update language progress
+        if (input.preferredLanguages) {
+          for (const lang of input.preferredLanguages) {
+            await db.languageProgress.upsert({
+              where: {
+                userId_language: {
+                  userId: user.id,
+                  language: lang,
+                },
+              },
+              create: {
+                userId: user.id,
+                language: lang,
+                lastUsedAt: new Date(),
+              },
+              update: {
+                lastUsedAt: new Date(),
+              },
+            })
+          }
+        }
+
+        return updatedUser
+      }),
+
+    getProfile: protectedProcedure
+      .query(async ({ ctx }) => {
+        const { user } = ctx
+        
+        const profile = await db.userProfile.findUnique({
+          where: { userId: user.id },
+        })
+
+        return {
+          ...user,
+          profile,
+        }
+      }),
+
+    updateLanguages: protectedProcedure
+      .input(z.object({
+        preferredLanguages: z.array(z.string()),
+        primaryLanguage: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { user } = ctx
+        
+        const updatedUser = await db.user.update({
+          where: { id: user.id },
+          data: {
+            preferredLanguages: input.preferredLanguages,
+            primaryLanguage: input.primaryLanguage,
+          },
+        })
+
+        // Update language progress
+        for (const lang of input.preferredLanguages) {
+          await db.languageProgress.upsert({
+            where: {
+              userId_language: {
+                userId: user.id,
+                language: lang,
+              },
+            },
+            create: {
+              userId: user.id,
+              language: lang,
+              lastUsedAt: new Date(),
+            },
+            update: {
+              lastUsedAt: new Date(),
+            },
+          })
+        }
+
+        return updatedUser
+      }),
+
+    getLanguageProgress: protectedProcedure
+      .query(async ({ ctx }) => {
+        const { user } = ctx
+        
+        const progress = await db.languageProgress.findMany({
+          where: { userId: user.id },
+          orderBy: { lastUsedAt: 'desc' },
+        })
+
+        return progress
+      }),
+  }),
+
+  assessment: router({
+    getQuestions: protectedProcedure
+      .input(z.object({
+        type: z.enum(['pre', 'post']),
+        language: z.string().optional(),
+        difficulty: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { user } = ctx
+        
+        // Get user's level to determine difficulty
+        let difficulty = input.difficulty
+        if (!difficulty) {
+          const userProfile = await db.user.findUnique({
+            where: { id: user.id },
+            select: { selfReportedLevel: true, assessedLevel: true },
+          })
+          
+          const level = userProfile?.assessedLevel || userProfile?.selfReportedLevel || 'beginner'
+          difficulty = level === 'expert' ? 'advanced' : level === 'advanced' ? 'intermediate' : 'beginner'
+        }
+
+        const questions = await db.assessmentQuestion.findMany({
+          where: {
+            language: input.language || null,
+            difficulty: difficulty,
+            ...(input.language ? {} : { language: null }), // If no language, get general questions
+          },
+          take: 15, // Limit to 15 questions
+          orderBy: { createdAt: 'desc' },
+        })
+
+        // If not enough questions, get more from general
+        if (questions.length < 10) {
+          const generalQuestions = await db.assessmentQuestion.findMany({
+            where: {
+              language: null,
+              difficulty: difficulty,
+            },
+            take: 15 - questions.length,
+            orderBy: { createdAt: 'desc' },
+          })
+          return [...questions, ...generalQuestions]
+        }
+
+        return questions
+      }),
+
+    submitAssessment: protectedProcedure
+      .input(z.object({
+        type: z.enum(['pre', 'post']),
+        language: z.string().optional(),
+        answers: z.array(z.object({
+          questionId: z.string(),
+          answer: z.string(),
+          isCorrect: z.boolean(),
+        })),
+        confidence: z.number().min(1).max(5),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { user } = ctx
+        
+        const score = input.answers.filter(a => a.isCorrect).length
+        const totalQuestions = input.answers.length
+
+        // Determine assessed level based on score
+        const percentage = (score / totalQuestions) * 100
+        let assessedLevel = 'beginner'
+        if (percentage >= 80) assessedLevel = 'advanced'
+        else if (percentage >= 60) assessedLevel = 'intermediate'
+
+        const assessment = await db.assessment.create({
+          data: {
+            userId: user.id,
+            type: input.type,
+            language: input.language,
+            score,
+            totalQuestions,
+            confidence: input.confidence,
+            answers: input.answers as any,
+          },
+        })
+
+        // Update user's assessed level if it's pre-assessment
+        if (input.type === 'pre') {
+          await db.user.update({
+            where: { id: user.id },
+            data: { assessedLevel },
+          })
+        } else {
+          // Calculate improvement score for post-assessment
+          const preAssessment = await db.assessment.findFirst({
+            where: {
+              userId: user.id,
+              type: 'pre',
+            },
+            orderBy: { completedAt: 'desc' },
+          })
+
+          if (preAssessment) {
+            const improvement = score - (preAssessment.score || 0)
+            const improvementScore = (improvement / totalQuestions) * 100
+
+            await db.stats.update({
+              where: { userId: user.id },
+              data: { improvementScore },
+            })
+          }
+        }
+
+        return assessment
+      }),
+
+    getAssessments: protectedProcedure
+      .query(async ({ ctx }) => {
+        const { user } = ctx
+        
+        const assessments = await db.assessment.findMany({
+          where: { userId: user.id },
+          orderBy: { completedAt: 'desc' },
+        })
+
+        return assessments
+      }),
+
+    checkPostAssessmentEligibility: protectedProcedure
+      .query(async ({ ctx }) => {
+        const { user } = ctx
+        
+        const userData = await db.user.findUnique({
+          where: { id: user.id },
+          select: { createdAt: true },
+        })
+
+        if (!userData) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' })
+        }
+
+        const stats = await db.stats.findUnique({
+          where: { userId: user.id },
+        })
+
+        const questionsAsked = stats?.questionsAsked || 0
+        const tasksCompleted = stats?.tasksCompleted || 0
+        const totalTimeSpent = stats?.totalTimeSpent || 0
+
+        const eligibility = checkPostAssessmentEligibility(
+          userData.createdAt,
+          questionsAsked,
+          tasksCompleted,
+          totalTimeSpent
+        )
+
+        // Check if post-assessment already completed
+        const postAssessment = await db.assessment.findFirst({
+          where: {
+            userId: user.id,
+            type: 'post',
+          },
+        })
+
+        return {
+          ...eligibility,
+          alreadyCompleted: !!postAssessment,
+        }
+      }),
+  }),
+
+  task: router({
+    completeTask: protectedProcedure
+      .input(z.object({
+        taskId: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { user } = ctx
+        const { taskId } = input
+
+        // Verify task exists
+        const task = await db.programmingTask.findUnique({
+          where: { id: taskId },
+          select: {
+            id: true,
+            language: true,
+            title: true,
+            isActive: true,
+          },
+        })
+
+        if (!task) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Task not found',
+          })
+        }
+
+        if (!task.isActive) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Task is not active',
+          })
+        }
+
+        // Get or create task progress for this user and task
+        let taskProgress = await db.userTaskProgress.findUnique({
+          where: {
+            userId_taskId: {
+              userId: user.id,
+              taskId: taskId,
+            },
+          },
+        })
+
+        // If no progress exists, create it
+        if (!taskProgress) {
+          taskProgress = await db.userTaskProgress.create({
+            data: {
+              userId: user.id,
+              taskId: taskId,
+              status: 'in_progress',
+            },
+          })
+        }
+
+        // Check if task is already completed
+        if (taskProgress.status === 'completed') {
+          return {
+            success: true,
+            message: 'Task already completed',
+            alreadyCompleted: true,
+          }
+        }
+
+        // Update task progress to completed
+        await db.userTaskProgress.update({
+          where: {
+            userId_taskId: {
+              userId: user.id,
+              taskId: taskId,
+            },
+          },
+          data: {
+            status: 'completed',
+            completedAt: new Date(),
+          },
+        })
+
+        // Get or create stats
+        const existingStats = await db.stats.findUnique({
+          where: { userId: user.id },
+        })
+
+        if (existingStats) {
+          // Only increment if this is the first time completing this task
+          await db.stats.update({
+            where: { userId: user.id },
+            data: {
+              tasksCompleted: { increment: 1 },
+            },
+          })
+        } else {
+          await db.stats.create({
+            data: {
+              userId: user.id,
+              tasksCompleted: 1,
+              questionsAsked: 0,
+              avgResponseTime: 0,
+            },
+          })
+        }
+
+        // Update LanguageProgress for the task's language
+        const taskLanguage = task.language.toLowerCase()
+        if (taskLanguage && taskLanguage !== 'general') {
+          await db.languageProgress.upsert({
+            where: {
+              userId_language: {
+                userId: user.id,
+                language: taskLanguage,
+              },
+            },
+            create: {
+              userId: user.id,
+              language: taskLanguage,
+              tasksCompleted: 1,
+              questionsAsked: 0,
+              lastUsedAt: new Date(),
+            },
+            update: {
+              tasksCompleted: { increment: 1 },
+              lastUsedAt: new Date(),
+            },
+          })
+        }
+
+        logger.info('Task completed', user.id, {
+          taskId,
+          taskTitle: task.title,
+          language: taskLanguage,
+        })
+
+        trackUserAction('task_completed', user.id, {
+          taskId,
+          language: taskLanguage,
+        })
+
+        return {
+          success: true,
+          message: 'Task completed successfully',
+          alreadyCompleted: false,
+        }
+      }),
+
+    getTaskProgress: protectedProcedure
+      .input(z.object({
+        taskId: z.string().optional(),
+      }))
+      .query(async ({ input, ctx }) => {
+        const { user } = ctx
+        const { taskId } = input
+
+        if (taskId) {
+          // Get progress for specific task
+          const progress = await db.userTaskProgress.findUnique({
+            where: {
+              userId_taskId: {
+                userId: user.id,
+                taskId: taskId,
+              },
+            },
+            include: {
+              task: true,
+            },
+          })
+          return progress ? [progress] : []
+        } else {
+          // Get all task progress for user
+          const progress = await db.userTaskProgress.findMany({
+            where: { userId: user.id },
+            include: {
+              task: true,
+            },
+            orderBy: { updatedAt: 'desc' },
+          })
+          return progress
+        }
+      }),
+
+    updateTaskProgress: protectedProcedure
+      .input(z.object({
+        taskId: z.string(),
+        status: z.enum(['not_started', 'in_progress', 'completed']).optional(),
+        attempts: z.number().optional(),
+        chatSessionId: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { user } = ctx
+        const { taskId, status, attempts, chatSessionId } = input
+
+        // Upsert task progress
+        const progress = await db.userTaskProgress.upsert({
+          where: {
+            userId_taskId: {
+              userId: user.id,
+              taskId: taskId,
+            },
+          },
+          create: {
+            userId: user.id,
+            taskId: taskId,
+            status: status || 'not_started',
+            attempts: attempts || 0,
+            chatSessionId: chatSessionId,
+          },
+          update: {
+            ...(status && { status }),
+            ...(attempts !== undefined && { attempts }),
+            ...(chatSessionId && { chatSessionId }),
+          },
+        })
+
+        return progress
+      }),
+
+    getTasks: protectedProcedure
+      .input(z.object({
+        language: z.string().optional(),
+        difficulty: z.string().optional(),
+        category: z.string().optional(),
+        includeProgress: z.boolean().default(true),
+      }))
+      .query(async ({ input, ctx }) => {
+        const { user } = ctx
+        const { language, difficulty, category, includeProgress } = input
+
+        const where: any = {
+          isActive: true,
+        }
+
+        if (language) {
+          where.language = language.toLowerCase()
+        }
+        if (difficulty) {
+          where.difficulty = difficulty.toLowerCase()
+        }
+        if (category) {
+          where.category = category.toLowerCase()
+        }
+
+        const tasks = await db.programmingTask.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          include: includeProgress
+            ? {
+                userProgress: {
+                  where: { userId: user.id },
+                  take: 1,
+                },
+              }
+            : undefined,
+        })
+
+        return tasks
+      }),
+
+    getTask: protectedProcedure
+      .input(z.object({
+        taskId: z.string(),
+        includeProgress: z.boolean().default(true),
+      }))
+      .query(async ({ input, ctx }) => {
+        const { user } = ctx
+        const { taskId, includeProgress } = input
+
+        const task = await db.programmingTask.findUnique({
+          where: { id: taskId },
+          include: includeProgress
+            ? {
+                userProgress: {
+                  where: { userId: user.id },
+                  take: 1,
+                },
+              }
+            : undefined,
+        })
+
+        if (!task) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Task not found',
+          })
+        }
+
+        return task
+      }),
+  }),
+
+  onboarding: router({
+    updateOnboardingStatus: protectedProcedure
+      .input(z.object({
+        completed: z.boolean(),
+        step: z.number().optional(),
+        showTooltips: z.boolean().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { user } = ctx
+        
+        const updatedUser = await db.user.update({
+          where: { id: user.id },
+          data: {
+            onboardingCompleted: input.completed,
+            onboardingStep: input.step ?? user.onboardingStep,
+            showTooltips: input.showTooltips ?? user.showTooltips,
+          },
+        })
+
+        return updatedUser
+      }),
+
+    getOnboardingStatus: protectedProcedure
+      .query(async ({ ctx }) => {
+        const { user } = ctx
+        
+        return {
+          onboardingCompleted: user.onboardingCompleted,
+          onboardingStep: user.onboardingStep,
+          showTooltips: user.showTooltips,
+        }
+      }),
+  }),
+
+  contact: router({
+    sendMessage: publicProcedure
+      .input(z.object({
+        name: z.string().min(1, 'Name is required'),
+        email: z.string().email('Invalid email address'),
+        subject: z.string().min(1, 'Subject is required'),
+        message: z.string().min(1, 'Message is required'),
+      }))
+      .mutation(async ({ input }) => {
+        // Save to database
+        const contactMessage = await db.contactMessage.create({
+          data: {
+            name: input.name,
+            email: input.email,
+            subject: input.subject,
+            message: input.message,
+            status: 'pending',
+          },
+        })
+
+        // Send email notification
+        try {
+          await sendContactEmail({
+            name: input.name,
+            email: input.email,
+            subject: input.subject,
+            message: input.message,
+          })
+        } catch (error) {
+          console.error('Error sending email notification:', error)
+          // Don't fail the mutation if email fails - message is still saved
+        }
+
+        return { success: true, id: contactMessage.id }
       }),
   }),
 })

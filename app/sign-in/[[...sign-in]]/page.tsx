@@ -10,7 +10,10 @@ export default function SignInPage() {
           </h2>
         </div>
         <div className="mt-8">
-          <SignIn />
+          <SignIn 
+            routing="path"
+            path="/sign-in"
+          />
         </div>
       </div>
     </div>
