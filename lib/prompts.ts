@@ -175,6 +175,31 @@ export function detectLanguage(message: string): string {
   return 'general'
 }
 
+const PROGRAMMING_ONLY_RESTRICTION = `
+CRITICAL: You are a programming assistant ONLY. Your role is strictly limited to:
+- Programming questions and code help
+- Debugging assistance
+- Algorithm and data structure explanations
+- Code review and best practices
+- Programming language syntax and concepts
+- Software development methodologies
+- Technical problem-solving related to code
+
+You MUST decline and politely redirect any requests that are NOT related to programming, such as:
+- General conversation or chit-chat
+- Essay writing or academic writing (unless it's about programming topics)
+- Non-programming homework or assignments
+- Personal advice or emotional support
+- Other academic subjects (history, literature, etc.)
+- Translation services (unless translating code comments)
+- Creative writing or storytelling
+
+If a user asks something unrelated to programming, respond with:
+"I'm designed to help with programming questions only. Please ask me about code, algorithms, debugging, or programming concepts. How can I assist you with your programming task?"
+
+Always stay focused on programming and software development topics.
+`
+
 export function getSystemPrompt(message: string, conversationHistory?: Array<{ role: 'user' | 'assistant', content: string }>): string {
   // Detect language from current message first
   let detectedLang = detectLanguage(message)
@@ -198,15 +223,18 @@ export function getSystemPrompt(message: string, conversationHistory?: Array<{ r
   const prompt = languagePrompts[detectedLang]
   
   if (prompt) {
+    // Combine language-specific prompt with programming-only restriction
+    const basePrompt = `${PROGRAMMING_ONLY_RESTRICTION}\n\n${prompt.systemPrompt}`
+    
     // If there's conversation history, add context about maintaining conversation flow
     if (conversationHistory && conversationHistory.length > 0) {
-      return `${prompt.systemPrompt}\n\nNote: This is part of an ongoing conversation. Use the previous messages as context to provide relevant and coherent responses. Maintain consistency with the programming language and concepts discussed earlier.`
+      return `${basePrompt}\n\nNote: This is part of an ongoing conversation. Use the previous messages as context to provide relevant and coherent responses. Maintain consistency with the programming language and concepts discussed earlier.`
     }
-    return prompt.systemPrompt
+    return basePrompt
   }
   
-  // General prompt with conversation context if available
-  const generalPrompt = languagePrompts.general.systemPrompt
+  // General prompt with programming restriction and conversation context if available
+  const generalPrompt = `${PROGRAMMING_ONLY_RESTRICTION}\n\n${languagePrompts.general.systemPrompt}`
   if (conversationHistory && conversationHistory.length > 0) {
     return `${generalPrompt}\n\nNote: This is part of an ongoing conversation. Use the previous messages as context to provide relevant and coherent responses.`
   }
