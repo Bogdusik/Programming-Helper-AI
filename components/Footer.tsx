@@ -3,6 +3,7 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
+import Link from 'next/link';
 import Logo from './Logo';
 
 const Footer: React.FC = () => {
@@ -92,17 +93,16 @@ const Footer: React.FC = () => {
                 {[
                   { name: 'Chat', href: '/chat' },
                   { name: 'Statistics', href: '/stats' },
-                  { name: 'Admin Panel', href: '/admin' },
-                  { name: 'Documentation', href: '#' }
+                  { name: 'FAQ', href: '/faq' }
                 ].map((link) => (
                   <li key={link.name}>
-                    <a 
+                    <Link 
                       href={link.href}
                       className="text-slate-400 hover:text-white transition-colors duration-200 text-sm group flex items-center"
                     >
                       <span className="w-1 h-1 bg-slate-500 rounded-full mr-2 group-hover:bg-white transition-colors"></span>
                       {link.name}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -118,13 +118,13 @@ const Footer: React.FC = () => {
                   { name: 'Features', href: '#' }
                 ].map((link) => (
                   <li key={link.name}>
-                    <a 
+                    <Link 
                       href={link.href}
                       className="text-slate-400 hover:text-white transition-colors duration-200 text-sm group flex items-center"
                     >
                       <span className="w-1 h-1 bg-slate-500 rounded-full mr-2 group-hover:bg-white transition-colors"></span>
                       {link.name}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -135,19 +135,18 @@ const Footer: React.FC = () => {
             <h4 className="text-white font-semibold mb-4">Support</h4>
             <ul className="space-y-3">
               {[
-                { name: 'Help Center', href: '#' },
-                { name: 'Contact Us', href: '#' },
-                { name: 'Privacy Policy', href: '#' },
-                { name: 'Terms of Service', href: '#' }
+                { name: 'Contact Us', href: '/contact' },
+                { name: 'Privacy Policy', href: '/privacy' },
+                { name: 'Terms of Service', href: '/terms' }
               ].map((link) => (
                 <li key={link.name}>
-                  <a 
+                  <Link 
                     href={link.href}
                     className="text-slate-400 hover:text-white transition-colors duration-200 text-sm group flex items-center"
                   >
                     <span className="w-1 h-1 bg-slate-500 rounded-full mr-2 group-hover:bg-white transition-colors"></span>
                     {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

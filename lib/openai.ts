@@ -1,5 +1,6 @@
 import OpenAI from 'openai'
 import { getSystemPrompt } from './prompts'
+import { isProgrammingRelated, getRejectionMessage } from './programming-validator'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -10,6 +11,11 @@ export async function generateResponse(
   conversationHistory?: Array<{ role: 'user' | 'assistant', content: string }>
 ): Promise<string> {
   try {
+    // Validate that the message is programming-related
+    if (!isProgrammingRelated(message)) {
+      return getRejectionMessage()
+    }
+    
     // Get specialized system prompt based on the message and conversation history
     const systemPrompt = getSystemPrompt(message, conversationHistory)
     
