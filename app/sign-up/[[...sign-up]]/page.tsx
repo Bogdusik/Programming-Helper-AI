@@ -10,7 +10,10 @@ export default function SignUpPage() {
           </h2>
         </div>
         <div className="mt-8">
-          <SignUp />
+          <SignUp 
+            routing="path"
+            path="/sign-up"
+          />
         </div>
       </div>
     </div>

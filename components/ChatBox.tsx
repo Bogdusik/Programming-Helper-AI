@@ -227,6 +227,7 @@ export default function ChatBox({ sessionId, onSessionCreated }: ChatBoxProps) {
             placeholder="Ask me anything about programming..."
             className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200"
             disabled={sendMessageMutation.isPending}
+            data-tour="chat-input"
           />
           <button
             type="submit"

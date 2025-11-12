@@ -69,6 +69,7 @@ export default function Navbar() {
                 </Link>
                 <Link 
                   href="/stats" 
+                  data-tour="stats-link"
                   className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:shadow-lg ${
                     pathname === '/stats' 
                       ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-500/25' 
@@ -76,6 +77,16 @@ export default function Navbar() {
                   }`}
                 >
                   Stats
+                </Link>
+                <Link 
+                  href="/tasks" 
+                  className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:shadow-lg ${
+                    pathname === '/tasks' 
+                      ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-500/25' 
+                      : 'bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white hover:shadow-slate-500/25'
+                  }`}
+                >
+                  Tasks
                 </Link>
                 {isAdmin && (
                   <Link 

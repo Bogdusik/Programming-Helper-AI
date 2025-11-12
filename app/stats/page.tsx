@@ -5,13 +5,26 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Navbar from '../../components/Navbar'
 import MinimalBackground from '../../components/MinimalBackground'
+import ProgressDashboard from '../../components/ProgressDashboard'
+import AssessmentModal, { AssessmentQuestion } from '../../components/AssessmentModal'
 import { trpc } from '../../lib/trpc-client'
 
 export default function StatsPage() {
   const { isSignedIn, isLoaded } = useUser()
   const router = useRouter()
+  const [showPostAssessment, setShowPostAssessment] = useState(false)
+  const [assessmentQuestions, setAssessmentQuestions] = useState<AssessmentQuestion[]>([])
   
   const { data: stats, isLoading: statsLoading, error: statsError } = trpc.stats.getUserStats.useQuery()
+  const { data: userProfile } = trpc.profile.getProfile.useQuery(undefined, {
+    enabled: isSignedIn,
+  })
+  const { data: eligibility } = trpc.assessment.checkPostAssessmentEligibility.useQuery(undefined, {
+    enabled: isSignedIn,
+  })
+  
+  const getQuestionsMutation = trpc.assessment.getQuestions.useMutation()
+  const submitAssessmentMutation = trpc.assessment.submitAssessment.useMutation()
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -32,6 +45,39 @@ export default function StatsPage() {
 
   if (!isSignedIn) {
     return null
+  }
+
+  const handleTakePostAssessment = async () => {
+    try {
+      const questions = await getQuestionsMutation.mutateAsync({
+        type: 'post',
+        language: userProfile?.primaryLanguage || undefined,
+      })
+      setAssessmentQuestions(questions as AssessmentQuestion[])
+      setShowPostAssessment(true)
+    } catch (error) {
+      console.error('Error loading assessment questions:', error)
+    }
+  }
+
+  const handleAssessmentSubmit = async (answers: any[], confidence: number) => {
+    try {
+      await submitAssessmentMutation.mutateAsync({
+        type: 'post',
+        language: userProfile?.primaryLanguage || undefined,
+        answers: answers.map(a => ({
+          questionId: a.questionId,
+          answer: a.answer,
+          isCorrect: a.isCorrect,
+        })),
+        confidence,
+      })
+      setShowPostAssessment(false)
+      // Refresh stats to show improvement
+      window.location.reload()
+    } catch (error) {
+      console.error('Error submitting assessment:', error)
+    }
   }
 
   if (statsError) {
@@ -66,52 +112,60 @@ export default function StatsPage() {
       {/* Minimal background for stats page */}
       <MinimalBackground />
       
-      <div className="relative pt-20 pb-8 min-h-screen flex items-center">
+      {/* Post-Assessment Modal */}
+      {showPostAssessment && assessmentQuestions.length > 0 && (
+        <AssessmentModal
+          isOpen={showPostAssessment}
+          onClose={() => setShowPostAssessment(false)}
+          onSubmit={handleAssessmentSubmit}
+          type="post"
+          questions={assessmentQuestions}
+          language={userProfile?.primaryLanguage}
+        />
+      )}
+
+      <div className="relative pt-20 pb-8 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-white mb-4">Your Programming Journey</h1>
-            <p className="text-white/70 text-lg">Track your progress with AI assistance</p>
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-white mb-2">Your Programming Journey</h1>
+            <p className="text-white/70">Track your progress with AI assistance</p>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 mb-12">
-            <div className="glass rounded-2xl p-8 card-hover text-center">
-              <div className="inline-flex items-center justify-center p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl shadow-lg mb-6">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {/* Progress Dashboard */}
+          <div className="mb-6">
+            <ProgressDashboard />
+          </div>
+
+          {/* Legacy Stats Cards (keeping for backward compatibility) */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="glass rounded-xl p-5 card-hover text-center">
+              <div className="inline-flex items-center justify-center p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg mb-4">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-3xl font-bold gradient-text mb-2">{stats?.questionsAsked || 0}</h3>
-              <p className="text-white/60">Questions Asked</p>
+              <h3 className="text-2xl font-bold gradient-text mb-1">{stats?.questionsAsked || 0}</h3>
+              <p className="text-white/60 text-sm">Questions Asked</p>
             </div>
 
-            <div className="glass rounded-2xl p-8 card-hover text-center">
-              <div className="inline-flex items-center justify-center p-4 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl shadow-lg mb-6">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="glass rounded-xl p-5 card-hover text-center">
+              <div className="inline-flex items-center justify-center p-3 bg-gradient-to-r from-green-500 to-green-600 rounded-xl shadow-lg mb-4">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-3xl font-bold gradient-text mb-2">{stats?.avgResponseTime ? `${stats.avgResponseTime.toFixed(1)}s` : '0s'}</h3>
-              <p className="text-white/60">Avg Response Time</p>
+              <h3 className="text-2xl font-bold gradient-text mb-1">{stats?.avgResponseTime ? `${stats.avgResponseTime.toFixed(1)}s` : '0s'}</h3>
+              <p className="text-white/60 text-sm">Avg Response Time</p>
             </div>
 
-            <div className="glass rounded-2xl p-8 card-hover text-center">
-              <div className="inline-flex items-center justify-center p-4 bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl shadow-lg mb-6">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="glass rounded-xl p-5 card-hover text-center">
+              <div className="inline-flex items-center justify-center p-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-lg mb-4">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <h3 className="text-3xl font-bold gradient-text mb-2">{stats?.mostFrequentResponseType || 'None'}</h3>
-              <p className="text-white/60">Most Frequent Type</p>
-            </div>
-          </div>
-
-          <div className="glass rounded-3xl p-8">
-            <div className="text-center">
-              <h3 className="text-2xl font-bold text-white mb-4">Activity Summary</h3>
-              <p className="text-white/70 text-lg leading-relaxed max-w-2xl mx-auto">
-                You&apos;ve asked <span className="gradient-text font-semibold">{stats?.questionsAsked || 0}</span> questions and received helpful AI assistance. 
-                Keep up the great work and continue your programming journey!
-              </p>
+              <h3 className="text-2xl font-bold gradient-text mb-1">{stats?.mostFrequentResponseType || 'None'}</h3>
+              <p className="text-white/60 text-sm">Most Frequent Type</p>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { SignInButton, useUser } from '@clerk/nextjs'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState, useEffect, useMemo } from 'react'
 import Navbar from '../components/Navbar'
 import AnimatedCounter from '../components/AnimatedCounter'
@@ -12,7 +13,8 @@ import { trpc } from '../lib/trpc-client'
 import { hasGivenConsent, saveConsentToStorage } from '../lib/research-consent'
 
 export default function Home() {
-  const { isSignedIn, isLoaded } = useUser()
+  const { isSignedIn, isLoaded, user } = useUser()
+  const router = useRouter()
   const [showConsent, setShowConsent] = useState(false)
   const [hasConsent, setHasConsent] = useState(false)
   
@@ -45,6 +47,9 @@ export default function Home() {
     }
   }, [isLoaded, isSignedIn])
 
+  // Profile modal removed from home page - it will be shown on chat page
+
+
   const handleConsent = (consent: boolean) => {
     saveConsentToStorage(consent)
     setHasConsent(consent)
@@ -59,6 +64,7 @@ export default function Home() {
       {showConsent && (
         <ResearchConsent onConsent={handleConsent} />
       )}
+
       
       {/* Optimized simple background */}
       <SimpleBackground />
