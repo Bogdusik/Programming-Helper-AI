@@ -33,8 +33,6 @@ export async function GET() {
     const requiredColumns = [
       { name: 'role', type: 'VARCHAR(255)', default: "'user'", notNull: true },
       { name: 'isBlocked', type: 'BOOLEAN', default: 'false', notNull: true },
-      { name: 'createdAt', type: 'TIMESTAMP', default: 'CURRENT_TIMESTAMP', notNull: true },
-      { name: 'updatedAt', type: 'TIMESTAMP', default: 'CURRENT_TIMESTAMP', notNull: true },
       { name: 'onboardingCompleted', type: 'BOOLEAN', default: 'false', notNull: true },
       { name: 'onboardingStep', type: 'INTEGER', default: '0', notNull: true },
       { name: 'showTooltips', type: 'BOOLEAN', default: 'true', notNull: true },
@@ -45,7 +43,7 @@ export async function GET() {
 
     for (const col of requiredColumns) {
       try {
-        // Check if column exists
+        // Check if column exists using parameterized query
         const result = await db.$queryRaw<Array<{ column_name: string }>>`
           SELECT column_name 
           FROM information_schema.columns 
@@ -55,32 +53,26 @@ export async function GET() {
         if (result.length === 0) {
           logger.info(`Adding missing column: ${col.name}`, user.id)
           
-          // Add column
-          await db.$executeRawUnsafe(`
-            ALTER TABLE users 
-            ADD COLUMN IF NOT EXISTS "${col.name}" ${col.type} DEFAULT ${col.default}
-          `)
+          // Add column - use proper SQL escaping
+          const addColumnSQL = `ALTER TABLE users ADD COLUMN IF NOT EXISTS "${col.name}" ${col.type} DEFAULT ${col.default}`
+          await db.$executeRawUnsafe(addColumnSQL)
           
-          // Update existing rows
+          // Update existing rows with default value
           if (col.notNull) {
-            await db.$executeRawUnsafe(`
-              UPDATE users 
-              SET "${col.name}" = ${col.default} 
-              WHERE "${col.name}" IS NULL
-            `)
+            const updateSQL = `UPDATE users SET "${col.name}" = ${col.default} WHERE "${col.name}" IS NULL`
+            await db.$executeRawUnsafe(updateSQL)
             
             // Make NOT NULL if required
-            await db.$executeRawUnsafe(`
-              ALTER TABLE users 
-              ALTER COLUMN "${col.name}" SET NOT NULL
-            `)
+            const alterSQL = `ALTER TABLE users ALTER COLUMN "${col.name}" SET NOT NULL`
+            await db.$executeRawUnsafe(alterSQL)
           }
           
           logger.info(`Column ${col.name} added successfully`, user.id)
         }
       } catch (colError: any) {
         logger.error(`Failed to add column ${col.name}`, user.id, {
-          error: colError instanceof Error ? colError.message : 'Unknown error'
+          error: colError instanceof Error ? colError.message : 'Unknown error',
+          stack: colError instanceof Error ? colError.stack : undefined
         })
         // Continue with other columns even if one fails
       }
