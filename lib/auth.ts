@@ -16,14 +16,28 @@ export async function getCurrentUser() {
     return null
   }
 
+  // Check if user should be admin based on email
+  const userEmail = user.emailAddresses?.[0]?.emailAddress
+  const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()) || []
+  const isAdmin = userEmail && adminEmails.includes(userEmail.toLowerCase())
+
   // Try to find existing user first
   let dbUser = await db.user.findUnique({
     where: { id: user.id }
   })
 
+  // If user exists, check if role needs to be updated (e.g., if email was added to admin list)
+  if (dbUser && isAdmin && dbUser.role !== 'admin') {
+    dbUser = await db.user.update({
+      where: { id: user.id },
+      data: { role: 'admin' }
+    })
+  }
+
   // If user doesn't exist, create it
   // Use try-catch with retry logic to handle race conditions where user might be created concurrently
   if (!dbUser) {
+    
     let retries = 5 // Increased retries
     let lastError: Error | null = null
     
@@ -32,7 +46,7 @@ export async function getCurrentUser() {
         dbUser = await db.user.create({
           data: {
             id: user.id, // This is already anonymous from Clerk
-            role: 'user',
+            role: isAdmin ? 'admin' : 'user',
             isBlocked: false
           }
         })
