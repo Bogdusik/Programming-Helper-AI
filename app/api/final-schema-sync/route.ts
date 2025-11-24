@@ -27,10 +27,65 @@ export async function POST() {
     }
     
     // ============================================
-    // STEP 1: Fix users table
+    // STEP 1: Create users table if it doesn't exist
     // ============================================
     try {
-      // Remove old columns
+      // Check if users table exists
+      const usersTableCheck = await db.$queryRaw<Array<{ tablename: string }>>`
+        SELECT tablename 
+        FROM pg_tables 
+        WHERE schemaname = 'public' AND tablename = 'users'
+      `
+      
+      // If users table doesn't exist, create it first
+      if (usersTableCheck.length === 0) {
+        logger.info('Creating users table (base table)', undefined)
+        await db.$executeRawUnsafe(`
+          CREATE TABLE "users" (
+            "id" TEXT NOT NULL,
+            "role" VARCHAR(255) NOT NULL DEFAULT 'user',
+            "isBlocked" BOOLEAN NOT NULL DEFAULT false,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL,
+            "selfReportedLevel" VARCHAR(255),
+            "assessedLevel" VARCHAR(255),
+            "learningGoals" TEXT[] DEFAULT ARRAY[]::TEXT[],
+            "aiExperience" VARCHAR(255),
+            "initialConfidence" INTEGER,
+            "preferredLanguages" TEXT[] DEFAULT ARRAY[]::TEXT[],
+            "primaryLanguage" VARCHAR(255),
+            "onboardingCompleted" BOOLEAN NOT NULL DEFAULT false,
+            "onboardingStep" INTEGER NOT NULL DEFAULT 0,
+            "showTooltips" BOOLEAN NOT NULL DEFAULT true,
+            "profileCompleted" BOOLEAN NOT NULL DEFAULT false,
+            CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+          )
+        `)
+        
+        // Create updatedAt trigger for users
+        await db.$executeRawUnsafe(`
+          CREATE OR REPLACE FUNCTION update_updated_at_column()
+          RETURNS TRIGGER AS $$
+          BEGIN
+            NEW."updatedAt" = CURRENT_TIMESTAMP;
+            RETURN NEW;
+          END;
+          $$ language 'plpgsql';
+        `)
+        
+        await db.$executeRawUnsafe(`
+          DROP TRIGGER IF EXISTS update_users_updated_at ON "users";
+          CREATE TRIGGER update_users_updated_at
+            BEFORE UPDATE ON "users"
+            FOR EACH ROW
+            EXECUTE FUNCTION update_updated_at_column();
+        `)
+        
+        results.createdTables.push('users')
+        logger.info('Users table created successfully', undefined)
+      }
+      
+      // Now fix existing users table (remove old columns, add missing ones)
       const userColumns = await db.$queryRaw<Array<{ column_name: string }>>`
         SELECT column_name 
         FROM information_schema.columns 
