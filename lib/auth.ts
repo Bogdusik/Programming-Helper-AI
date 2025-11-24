@@ -22,15 +22,30 @@ export async function getCurrentUser() {
   const isAdmin = userEmail && adminEmails.includes(userEmail.toLowerCase())
 
   // Try to find existing user first
+  // Use select to only fetch essential columns to avoid errors if schema is out of sync
   let dbUser = await db.user.findUnique({
-    where: { id: user.id }
+    where: { id: user.id },
+    select: {
+      id: true,
+      role: true,
+      isBlocked: true,
+      createdAt: true,
+      updatedAt: true
+    }
   })
 
   // If user exists, check if role needs to be updated (e.g., if email was added to admin list)
   if (dbUser && isAdmin && dbUser.role !== 'admin') {
     dbUser = await db.user.update({
       where: { id: user.id },
-      data: { role: 'admin' }
+      data: { role: 'admin' },
+      select: {
+        id: true,
+        role: true,
+        isBlocked: true,
+        createdAt: true,
+        updatedAt: true
+      }
     })
   }
 
@@ -66,7 +81,14 @@ export async function getCurrentUser() {
           // Wait longer and try to fetch the user again
           await new Promise(resolve => setTimeout(resolve, 300))
           dbUser = await db.user.findUnique({
-            where: { id: user.id }
+            where: { id: user.id },
+            select: {
+              id: true,
+              role: true,
+              isBlocked: true,
+              createdAt: true,
+              updatedAt: true
+            }
           })
           // If found, exit loop
           if (dbUser) {
@@ -89,7 +111,14 @@ export async function getCurrentUser() {
     if (!dbUser) {
       await new Promise(resolve => setTimeout(resolve, 500))
       dbUser = await db.user.findUnique({
-        where: { id: user.id }
+        where: { id: user.id },
+        select: {
+          id: true,
+          role: true,
+          isBlocked: true,
+          createdAt: true,
+          updatedAt: true
+        }
       })
       
       // If still not found, throw error
