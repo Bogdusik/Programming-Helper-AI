@@ -818,11 +818,36 @@ export const appRouter = router({
             }
           }
         } catch (error) {
-          logger.error('Error fetching admin dashboard stats', undefined, { error })
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Failed to fetch dashboard statistics'
+          logger.error('Error fetching admin dashboard stats', undefined, { 
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined
           })
+          // Return default values instead of throwing to prevent UI errors
+          return {
+            users: {
+              total: 0,
+              active24h: 0,
+              active7d: 0,
+              new24h: 0,
+              new7d: 0
+            },
+            messages: {
+              total: 0,
+              last24h: 0,
+              last7d: 0,
+              userMessages: 0,
+              assistantMessages: 0
+            },
+            sessions: {
+              total: 0,
+              last24h: 0,
+              last7d: 0
+            },
+            analytics: {
+              avgResponseTime: 0,
+              questionTypeDistribution: {}
+            }
+          }
         }
       }),
 
