@@ -28,9 +28,27 @@ export async function GET() {
     }
 
     // Find user in database
-    let dbUser = await db.user.findUnique({
-      where: { id: user.id }
-    })
+    // First check if role column exists by trying to query it
+    let dbUser
+    try {
+      dbUser = await db.user.findUnique({
+        where: { id: user.id },
+        select: {
+          id: true,
+          role: true,
+        }
+      })
+    } catch (error: any) {
+      // If role column doesn't exist, we need to add it first
+      if (error?.message?.includes('role') || error?.message?.includes('does not exist')) {
+        return NextResponse.json({ 
+          error: 'Database schema is out of date. The role column does not exist.',
+          solution: 'Please run "npx prisma db push" on your database or wait for the next deployment to sync the schema.',
+          details: 'The database needs to be synced with the Prisma schema. This should happen automatically during deployment.'
+        }, { status: 500 })
+      }
+      throw error
+    }
 
     if (!dbUser) {
       return NextResponse.json({ error: 'User not found in database' }, { status: 404 })
