@@ -309,7 +309,6 @@ function ChatPageContent() {
         primaryLanguage: data.primaryLanguage,
       })
       setShowProfileModal(false)
-      setProfileModalDismissed(true)
       
       // Invalidate and refetch profile to get updated data
       await utils.profile.getProfile.invalidate()
