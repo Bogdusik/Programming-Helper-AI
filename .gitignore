@@ -53,3 +53,4 @@ next-env.d.ts
 
 # research documentation
 RESEARCH_ETHICS.md
+.env*.local
