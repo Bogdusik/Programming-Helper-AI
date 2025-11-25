@@ -42,7 +42,7 @@ export default function PrivacyPage() {
               <section>
                 <h2 className="text-2xl font-semibold text-white mb-4">1. Introduction</h2>
                 <p className="leading-relaxed">
-                  Programming Helper AI ("we", "our", or "us") is committed to protecting your privacy. 
+                  Programming Helper AI (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is committed to protecting your privacy. 
                   This Privacy Policy explains how we collect, use, disclose, and safeguard your information 
                   when you use our AI-powered programming assistant platform.
                 </p>

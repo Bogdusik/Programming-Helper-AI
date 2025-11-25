@@ -50,23 +50,28 @@ export default function AssessmentModal({
     }
   }, [isOpen])
 
-  if (!isOpen || questions.length === 0) return null
-
   // OPTIMIZATION: Memoize current question and progress
-  const question = useMemo(() => questions[currentQuestion], [questions, currentQuestion])
-  const progress = useMemo(() => 
-    ((currentQuestion + 1) / questions.length) * 100,
-    [currentQuestion, questions.length]
-  )
+  // Must be called before early return to follow React Hooks rules
+  const question = useMemo(() => {
+    if (!isOpen || questions.length === 0) return null
+    return questions[currentQuestion] ?? null
+  }, [isOpen, questions, currentQuestion])
+  
+  const progress = useMemo(() => {
+    if (!isOpen || questions.length === 0) return 0
+    return ((currentQuestion + 1) / questions.length) * 100
+  }, [isOpen, currentQuestion, questions.length])
 
   const handleAnswer = useCallback((answer: string) => {
+    if (!question) return
     setAnswers(prev => ({
       ...prev,
       [question.id]: answer
     }))
-  }, [question.id])
+  }, [question])
 
   const handleNext = useCallback(() => {
+    if (!isOpen || questions.length === 0) return
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1)
     } else {
@@ -91,7 +96,7 @@ export default function AssessmentModal({
       })
       onSubmit(assessmentAnswers, confidence)
     }
-  }, [currentQuestion, questions.length, questions, answers, confidence, onSubmit])
+  }, [isOpen, currentQuestion, questions, answers, confidence, onSubmit])
 
   const handlePrevious = useCallback(() => {
     if (currentQuestion > 0) {
@@ -100,14 +105,17 @@ export default function AssessmentModal({
   }, [currentQuestion])
 
   // OPTIMIZATION: Memoize computed values
-  const isAnswered = useMemo(() => 
-    answers[question.id] !== undefined,
-    [answers, question.id]
-  )
-  const canProceed = useMemo(() => 
-    isAnswered || question.type === 'conceptual',
-    [isAnswered, question.type]
-  )
+  const isAnswered = useMemo(() => {
+    if (!question) return false
+    return answers[question.id] !== undefined
+  }, [answers, question])
+  
+  const canProceed = useMemo(() => {
+    if (!question) return false
+    return isAnswered || question.type === 'conceptual'
+  }, [isAnswered, question])
+
+  if (!isOpen || questions.length === 0 || !question) return null
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

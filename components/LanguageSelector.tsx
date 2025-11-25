@@ -280,7 +280,7 @@ export default function LanguageSelector({
 
       {filteredLanguages.length === 0 && (
         <div className="text-center py-8 text-white/50">
-          <p>No languages found matching "{searchQuery}"</p>
+          <p>No languages found matching &quot;{searchQuery}&quot;</p>
         </div>
       )}
 

@@ -1,5 +1,6 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { db } from './db'
 import { getCurrentUser } from './auth'
 import { generateResponse, generateChatTitle, analyzeQuestionType, checkAssessmentAnswer } from './openai'
@@ -1575,7 +1576,7 @@ export const appRouter = router({
           data = users.map((u) => ({
             id: u.id,
             role: u.role,
-            isBlocked: (u as any).isBlocked ?? false,
+            isBlocked: u.isBlocked ?? false,
             createdAt: u.createdAt.toISOString(),
             messages: u._count.messages,
             sessions: u._count.chatSessions,
@@ -1978,11 +1979,11 @@ export const appRouter = router({
           
           if (preAssessment) {
             // Extract question IDs from pre-assessment answers
-            const preAnswers = preAssessment.answers as any
+            const preAnswers = preAssessment.answers
             if (Array.isArray(preAnswers)) {
-              excludedQuestionIds = preAnswers
-                .map((a: any) => a?.questionId)
-                .filter((id: any): id is string => typeof id === 'string' && id.length > 0)
+              excludedQuestionIds = (preAnswers as unknown as Array<{ questionId?: string }>)
+                .map((a) => a?.questionId)
+                .filter((id): id is string => typeof id === 'string' && id.length > 0)
             }
             
             // Determine difficulty based on pre-assessment performance
@@ -2244,7 +2245,7 @@ export const appRouter = router({
             score,
             totalQuestions,
             confidence: input.confidence,
-            answers: checkedAnswers as any,
+            answers: checkedAnswers as unknown as Prisma.InputJsonValue,
           },
         })
 
@@ -2698,14 +2699,23 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const { user } = ctx
         
+        // Load current user data to get existing values for optional fields
+        const currentUser = await db.user.findUnique({
+          where: { id: user.id },
+          select: {
+            onboardingStep: true,
+            showTooltips: true,
+          },
+        })
+        
         // CRITICAL: Always set onboardingCompleted to the input value
         // This ensures the status is saved correctly in the database
         const updatedUser = await db.user.update({
           where: { id: user.id },
           data: {
             onboardingCompleted: input.completed, // Explicitly set to input value
-            onboardingStep: input.step ?? user.onboardingStep,
-            showTooltips: input.showTooltips ?? user.showTooltips,
+            onboardingStep: input.step ?? currentUser?.onboardingStep ?? 0,
+            showTooltips: input.showTooltips ?? currentUser?.showTooltips ?? true,
           },
         })
 

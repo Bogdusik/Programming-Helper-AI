@@ -67,7 +67,7 @@ export default function TermsPage() {
                 <h2 className="text-2xl font-semibold text-white mb-4">3. User Conduct</h2>
                 <p className="leading-relaxed mb-3">
                   You agree to use Programming Helper AI only for lawful purposes and in a way that does not 
-                  infringe the rights of, restrict or inhibit anyone else's use and enjoyment of the platform. 
+                  infringe the rights of, restrict or inhibit anyone else&apos;s use and enjoyment of the platform. 
                   Prohibited behavior includes:
                 </p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
@@ -90,7 +90,7 @@ export default function TermsPage() {
               <section>
                 <h2 className="text-2xl font-semibold text-white mb-4">5. Disclaimer</h2>
                 <p className="leading-relaxed">
-                  The materials on Programming Helper AI are provided on an 'as is' basis. We make no warranties, 
+                  The materials on Programming Helper AI are provided on an &apos;as is&apos; basis. We make no warranties, 
                   expressed or implied, and hereby disclaim and negate all other warranties including, without limitation, 
                   implied warranties or conditions of merchantability, fitness for a particular purpose, or 
                   non-infringement of intellectual property or other violation of rights.
