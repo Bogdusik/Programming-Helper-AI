@@ -289,7 +289,16 @@ function ChatPageContent() {
         language: userProfile?.primaryLanguage ?? undefined,
       })
       // Transform questions to AssessmentQuestion format explicitly
-      const transformedQuestions: AssessmentQuestion[] = questions.map((q: any) => ({
+      const transformedQuestions: AssessmentQuestion[] = questions.map((q: {
+        id: string
+        question: string
+        type: string
+        options?: unknown
+        correctAnswer: string
+        category?: string
+        difficulty?: string
+        explanation?: string
+      }) => ({
         id: q.id,
         question: q.question,
         type: q.type as 'multiple_choice' | 'code_snippet' | 'conceptual',
@@ -333,7 +342,11 @@ function ChatPageContent() {
     }
   }
 
-  const handleAssessmentSubmit = async (answers: any[], confidence: number) => {
+  const handleAssessmentSubmit = async (answers: Array<{
+    questionId: string
+    answer: string
+    isCorrect: boolean
+  }>, confidence: number) => {
     try {
       await submitAssessmentMutation.mutateAsync({
         type: 'pre',

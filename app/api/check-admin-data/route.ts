@@ -14,7 +14,21 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const results: any = {
+    const results: {
+      timestamp: string
+      user?: {
+        id?: string
+        email?: string
+        role?: string
+      }
+      database?: {
+        users?: number
+        messages?: number
+        sessions?: number
+        stats?: number
+      }
+      errors?: string[]
+    } = {
       timestamp: new Date().toISOString(),
       user: {
         id: user.id,

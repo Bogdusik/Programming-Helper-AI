@@ -64,7 +64,7 @@ export default function BlockedPage() {
             {/* Message */}
             <div className="space-y-4 text-center">
               <p className="text-white/80 text-lg leading-relaxed">
-                We're sorry, but your account has been temporarily restricted from accessing the Programming Helper AI platform.
+                We&apos;re sorry, but your account has been temporarily restricted from accessing the Programming Helper AI platform.
               </p>
 
               <div className="bg-white/5 rounded-lg p-6 mt-6 text-left">
@@ -87,7 +87,7 @@ export default function BlockedPage() {
                   Need help?
                 </h2>
                 <p className="text-white/70 text-sm leading-relaxed mb-3">
-                  If you believe this is an error or have questions about your account status, please don't hesitate to reach out to our support team.
+                  If you believe this is an error or have questions about your account status, please don&apos;t hesitate to reach out to our support team.
                 </p>
                 <Link
                   href="/contact"

@@ -69,7 +69,7 @@ export async function GET() {
           
           logger.info(`Column ${col.name} added successfully`, user.id)
         }
-      } catch (colError: any) {
+      } catch (colError: unknown) {
         logger.error(`Failed to add column ${col.name}`, user.id, {
           error: colError instanceof Error ? colError.message : 'Unknown error'
         })
@@ -122,7 +122,7 @@ export async function GET() {
             }
           })
           logger.info('User created successfully', user.id, { role: dbUser.role })
-        } catch (createError: any) {
+        } catch (createError: unknown) {
           // If Prisma fails due to email constraint, use raw SQL
           if (createError instanceof Error && createError.message.includes('email')) {
             logger.info('Creating user with raw SQL due to email constraint', user.id)
@@ -165,7 +165,7 @@ export async function GET() {
             }
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Failed to create user', user.id, {
           error: error instanceof Error ? error.message : 'Unknown error'
         })

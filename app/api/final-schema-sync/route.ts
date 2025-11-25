@@ -19,7 +19,12 @@ export async function POST() {
   try {
     logger.info('Starting FINAL schema synchronization', undefined)
     
-    const results: any = {
+    const results: {
+      removedColumns: string[]
+      addedColumns: string[]
+      createdTables: string[]
+      errors: string[]
+    } = {
       removedColumns: [],
       addedColumns: [],
       createdTables: [],

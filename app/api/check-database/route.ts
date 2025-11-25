@@ -26,7 +26,7 @@ export async function GET() {
     }
     
     // Get database info
-    let dbInfo: any = {}
+    const dbInfo: Record<string, unknown> = {}
     try {
       const result = await db.$queryRaw<Array<{ current_database: string }>>`
         SELECT current_database()
