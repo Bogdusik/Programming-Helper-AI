@@ -6,7 +6,32 @@ import { logger } from '@/lib/logger'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const diagnostics: any = {
+  const diagnostics: {
+    timestamp: string
+    status: string
+    checks: {
+      databaseConnection?: {
+        status: string
+        message: string
+        error?: string
+      }
+      environmentVariables?: Record<string, unknown>
+      userTableStructure?: {
+        status?: string
+        totalColumns?: number
+        existingColumns?: string[]
+        missingColumns?: string[]
+        message?: string
+        error?: string
+      }
+      currentUser?: Record<string, unknown>
+      userInDatabase?: Record<string, unknown>
+      databaseStats?: Record<string, unknown>
+    }
+      recommendations?: string[]
+      errors?: string[]
+    summary?: string
+  } = {
     timestamp: new Date().toISOString(),
     status: 'checking',
     checks: {}
@@ -181,7 +206,7 @@ export async function GET() {
       recommendations.push('1. Set ADMIN_EMAILS environment variable in Vercel (Settings → Environment Variables)')
     }
     
-    if (diagnostics.checks.userTableStructure?.missingColumns?.length > 0) {
+    if (diagnostics.checks.userTableStructure?.missingColumns && diagnostics.checks.userTableStructure.missingColumns.length > 0) {
       recommendations.push('2. Run POST /api/final-schema-sync to sync database schema')
     }
     
