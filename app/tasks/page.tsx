@@ -221,7 +221,7 @@ export default function TasksPage() {
       router.push(`/chat?sessionId=${session.id}&taskId=${task.id}`)
     } catch (error) {
       console.error('Error starting task:', error)
-      alert('Error starting task. Please try again.')
+      toast.error('Error starting task. Please try again.')
       setStartingTaskId(null)
     }
   }
@@ -232,7 +232,7 @@ export default function TasksPage() {
       // Query will be invalidated automatically by the mutation's onSuccess
     } catch (error) {
       console.error('Error completing task:', error)
-      alert('Error completing task. Please try again.')
+      toast.error('Error completing task. Please try again.')
     }
   }
 
