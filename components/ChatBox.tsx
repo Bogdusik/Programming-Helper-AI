@@ -24,6 +24,21 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   
+  // Check if user has completed onboarding (profile and pre-assessment)
+  // This prevents sending messages before completing required steps
+  const { data: userProfile } = trpc.profile.getProfile.useQuery(undefined, {
+    enabled: true,
+    staleTime: 5 * 60 * 1000,
+  })
+  
+  const { data: preAssessment } = trpc.assessment.getAssessments.useQuery(undefined, {
+    enabled: true,
+    staleTime: 5 * 60 * 1000,
+  })
+  
+  const hasPreAssessment = preAssessment?.some(a => a.type === 'pre') ?? false
+  const isOnboardingComplete = userProfile?.profileCompleted && hasPreAssessment
+  
   const sendMessageMutation = trpc.chat.sendMessage.useMutation()
   const { data: messages = [], refetch: refetchMessages, isLoading: isLoadingMessages } = trpc.chat.getMessages.useQuery(
     { sessionId },
@@ -227,6 +242,19 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
     e.preventDefault()
     if (!message.trim() || sendMessageMutation.isPending) return
 
+    // Check if onboarding is complete before allowing message send
+    if (!isOnboardingComplete) {
+      if (!userProfile?.profileCompleted) {
+        toast.error('Please complete your profile before sending messages. Please refresh the page if you don\'t see the profile form.')
+        return
+      }
+      if (!hasPreAssessment) {
+        toast.error('Please complete the knowledge assessment before sending messages. Please refresh the page if you don\'t see the assessment form.')
+        return
+      }
+      return
+    }
+
     const messageToSend = message
     setMessage('')
 
@@ -266,13 +294,52 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
       setTimeout(() => scrollToBottom(), 100)
     } catch (error) {
       console.error('Error sending message:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to send message. Please try again.'
-      toast.error(errorMessage)
+      
+      // Check if it's a tRPC error with specific code
+      let errorMessage = 'Failed to send message. Please try again.'
+      let shouldShowRefreshHint = false
+      
+      if (error && typeof error === 'object') {
+        // tRPC errors have a specific structure
+        const trpcError = error as { 
+          data?: { code?: string; httpStatus?: number }; 
+          message?: string;
+          shape?: { message?: string; data?: { code?: string } }
+        }
+        
+        // Check error.data.code (tRPC error structure)
+        if (trpcError.data?.code === 'PRECONDITION_FAILED') {
+          errorMessage = trpcError.message || 'Please complete onboarding before sending messages.'
+          shouldShowRefreshHint = true
+        } else if (trpcError.shape?.data?.code === 'PRECONDITION_FAILED') {
+          errorMessage = trpcError.shape.message || 'Please complete onboarding before sending messages.'
+          shouldShowRefreshHint = true
+        } else if (trpcError.message) {
+          errorMessage = trpcError.message
+          // Check if message mentions onboarding
+          if (errorMessage.includes('complete your profile') || errorMessage.includes('complete the knowledge assessment') || errorMessage.includes('onboarding')) {
+            shouldShowRefreshHint = true
+          }
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message
+        // Check if error is about onboarding not being complete
+        if (errorMessage.includes('complete your profile') || errorMessage.includes('complete the knowledge assessment') || errorMessage.includes('onboarding')) {
+          shouldShowRefreshHint = true
+        }
+      }
+      
+      // Show error with refresh hint if needed
+      if (shouldShowRefreshHint) {
+        toast.error(errorMessage + ' Please refresh the page to continue with onboarding.', { duration: 5000 })
+      } else {
+        toast.error(errorMessage)
+      }
       
       // Remove the optimistic message on error
       setOptimisticMessages(prev => prev.filter(msg => msg.id !== userMessage.id))
     }
-  }, [message, sendMessageMutation, sessionId, onSessionCreated, refetchMessages, scrollToBottom])
+  }, [message, sendMessageMutation, sessionId, onSessionCreated, refetchMessages, scrollToBottom, isOnboardingComplete, userProfile?.profileCompleted, hasPreAssessment])
 
   return (
     <div className="flex flex-col h-full min-h-0" style={{ height: '100%', minHeight: 0, maxHeight: '100%' }}>
@@ -388,14 +455,14 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Ask me anything about programming..."
+              placeholder={isOnboardingComplete ? "Ask me anything about programming..." : "Please complete onboarding to start chatting..."}
               className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200"
-              disabled={sendMessageMutation.isPending}
+              disabled={sendMessageMutation.isPending || !isOnboardingComplete}
               data-tour="chat-input"
             />
             <button
               type="submit"
-              disabled={!message.trim() || sendMessageMutation.isPending}
+              disabled={!message.trim() || sendMessageMutation.isPending || !isOnboardingComplete}
               className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-2xl font-medium transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
             >
               {sendMessageMutation.isPending ? (

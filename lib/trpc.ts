@@ -218,6 +218,39 @@ export const appRouter = router({
         const { message, sessionId } = input
         const { user } = ctx
 
+        // Check if user has completed onboarding (profile and pre-assessment)
+        // This prevents users from sending messages before completing required steps
+        const userData = await db.user.findUnique({
+          where: { id: user.id },
+          select: {
+            profileCompleted: true,
+          },
+        })
+
+        if (!userData?.profileCompleted) {
+          logger.warn('User attempted to send message before completing profile', user.id)
+          throw new TRPCError({
+            code: 'PRECONDITION_FAILED',
+            message: 'Please complete your profile and assessment before sending messages. Please refresh the page to continue with onboarding.',
+          })
+        }
+
+        // Check if user has completed pre-assessment
+        const preAssessment = await db.assessment.findFirst({
+          where: {
+            userId: user.id,
+            type: 'pre',
+          },
+        })
+
+        if (!preAssessment) {
+          logger.warn('User attempted to send message before completing pre-assessment', user.id)
+          throw new TRPCError({
+            code: 'PRECONDITION_FAILED',
+            message: 'Please complete the knowledge assessment before sending messages. Please refresh the page to continue with onboarding.',
+          })
+        }
+
         // Rate limiting: 10 requests per minute per user
         const rateLimitResult = rateLimit(user.id, 10, 60000)
         if (!rateLimitResult.success) {
