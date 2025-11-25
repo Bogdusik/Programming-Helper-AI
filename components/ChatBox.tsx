@@ -56,7 +56,7 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
   // OPTIMIZATION: Memoize task progress calculations to avoid unnecessary recalculations
   const associatedProgress = useMemo(() => {
     if (!sessionId || !allTaskProgress) return null
-    return (allTaskProgress as any[]).find((progress: any) => {
+    return allTaskProgress?.find((progress) => {
       const matchesSession = progress.chatSessionId === sessionId
       if (taskId) {
         return matchesSession && progress.taskId === taskId

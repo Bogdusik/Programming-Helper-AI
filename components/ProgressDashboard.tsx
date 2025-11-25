@@ -24,6 +24,58 @@ export default function ProgressDashboard() {
   // Show loading only if critical data is still loading
   const isLoading = profileLoading || statsLoading
   
+  // OPTIMIZATION: Memoize assessment calculations
+  // Must be called before early return to follow React Hooks rules
+  // Cast to simple type to avoid deep type recursion
+  const assessmentsArray = useMemo(() => {
+    if (!assessments || !Array.isArray(assessments)) return []
+    return assessments as unknown as Array<{ 
+      type: string
+      score?: number
+      totalQuestions?: number
+      completedAt?: Date | string
+      confidence?: number
+    }>
+  }, [assessments])
+  
+  const preAssessmentData = useMemo(() => {
+    const pre = assessmentsArray.find((a) => a.type === 'pre')
+    if (!pre) return null
+    return {
+      score: pre.score ?? 0,
+      totalQuestions: pre.totalQuestions ?? 0,
+      completedAt: pre.completedAt,
+      confidence: pre.confidence ?? 0,
+    }
+  }, [assessmentsArray])
+  
+  const postAssessmentData = useMemo(() => {
+    const post = assessmentsArray.find((a) => a.type === 'post')
+    if (!post) return null
+    return {
+      score: post.score ?? 0,
+      totalQuestions: post.totalQuestions ?? 0,
+      completedAt: post.completedAt,
+      confidence: post.confidence ?? 0,
+    }
+  }, [assessmentsArray])
+  
+  // Keep Assessment types for compatibility, but use simple data objects for calculations
+  // Don't create Assessment objects to avoid deep type recursion - use data objects instead
+  const preAssessment = preAssessmentData ? true : false
+  const postAssessment = postAssessmentData ? true : false
+  
+  const improvement = useMemo((): number | null => {
+    if (!postAssessmentData || !preAssessmentData) return null
+    return postAssessmentData.score - preAssessmentData.score
+  }, [postAssessmentData, preAssessmentData])
+
+  // OPTIMIZATION: Memoize days calculation
+  const daysSinceRegistration = useMemo(() => {
+    if (!userProfile?.createdAt) return 0
+    return Math.floor((new Date().getTime() - new Date(userProfile.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+  }, [userProfile?.createdAt])
+  
   if (isLoading || !userProfile || !stats) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -32,37 +84,13 @@ export default function ProgressDashboard() {
     )
   }
 
-  // OPTIMIZATION: Memoize assessment calculations
-  const preAssessment = useMemo(() => 
-    (assessments as any[])?.find((a: any) => a.type === 'pre'),
-    [assessments]
-  )
-  
-  const postAssessment = useMemo(() => 
-    (assessments as any[])?.find((a: any) => a.type === 'post'),
-    [assessments]
-  )
-  
-  const improvement = useMemo(() => {
-    if (!postAssessment || !preAssessment) return null
-    return (postAssessment.score || 0) - (preAssessment.score || 0)
-  }, [postAssessment, preAssessment])
-
-  // OPTIMIZATION: Memoize days calculation
-  const daysSinceRegistration = useMemo(() => 
-    userProfile.createdAt
-      ? Math.floor((new Date().getTime() - new Date(userProfile.createdAt).getTime()) / (1000 * 60 * 60 * 24))
-      : 0,
-    [userProfile.createdAt]
-  )
-
   const handleTakePostAssessment = async () => {
     try {
       const questions = await getQuestionsMutation.mutateAsync({
         type: 'post',
         language: userProfile?.primaryLanguage || undefined,
       })
-      setAssessmentQuestions((questions as any) as AssessmentQuestion[])
+      setAssessmentQuestions(questions as unknown as AssessmentQuestion[])
       setShowPostAssessment(true)
     } catch (error) {
       logger.error('Error loading assessment questions', userProfile?.id, {
@@ -71,7 +99,7 @@ export default function ProgressDashboard() {
     }
   }
 
-  const handleAssessmentSubmit = async (answers: any[], confidence: number) => {
+  const handleAssessmentSubmit = async (answers: Array<{ questionId: string; answer: string; isCorrect?: boolean }>, confidence: number) => {
     try {
       await submitAssessmentMutation.mutateAsync({
         type: 'post',
@@ -116,7 +144,7 @@ export default function ProgressDashboard() {
       {/* Assessment Cards */}
       <div className="space-y-3">
         {/* Pre-Assessment - Compact Badge */}
-        {preAssessment && (
+        {preAssessmentData && (
           <div className="glass rounded-lg shadow p-2.5 border border-blue-500/30 bg-gradient-to-r from-blue-900/20 to-transparent">
             <div className="flex items-center gap-3">
               <div className="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-lg flex-shrink-0">
@@ -128,13 +156,13 @@ export default function ProgressDashboard() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-semibold text-white">Pre-Assessment</span>
                   <span className="px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full font-medium">
-                    {preAssessment.score}/{preAssessment.totalQuestions}
+                    {preAssessmentData.score}/{preAssessmentData.totalQuestions}
                   </span>
                   <span className="text-xs text-white/60">
-                    {new Date(preAssessment.completedAt).toLocaleDateString()}
+                    {preAssessmentData.completedAt ? new Date(preAssessmentData.completedAt).toLocaleDateString() : 'N/A'}
                   </span>
                   <span className="text-xs text-white/50">
-                    Confidence: {preAssessment.confidence}/5
+                    Confidence: {preAssessmentData.confidence}/5
                   </span>
                 </div>
               </div>
@@ -144,25 +172,25 @@ export default function ProgressDashboard() {
 
         {/* Post-Assessment */}
         <div className={`glass rounded-lg shadow-lg p-4 ${
-          eligibility && eligibility.isEligible && !postAssessment 
+          eligibility && eligibility.isEligible && !postAssessmentData 
             ? 'border-2 border-green-500/50 bg-gradient-to-br from-green-900/20 to-blue-900/20' 
             : 'border border-blue-500/20'
         }`}>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-base font-semibold text-white">Post-Assessment</h3>
-            {eligibility && eligibility.isEligible && !postAssessment && (
+            {eligibility && eligibility.isEligible && !postAssessmentData && (
               <span className="px-2 py-1 bg-green-500 text-white text-xs font-bold rounded-full animate-pulse">
                 READY!
               </span>
             )}
           </div>
-          {postAssessment ? (
+          {postAssessmentData ? (
             <div>
               <div className="text-2xl font-bold text-green-600 mb-1">
-                {postAssessment.score}/{postAssessment.totalQuestions}
+                {postAssessmentData.score}/{postAssessmentData.totalQuestions}
               </div>
               <p className="text-xs text-white/70">
-                Completed {new Date(postAssessment.completedAt).toLocaleDateString()}
+                Completed {postAssessmentData.completedAt ? new Date(postAssessmentData.completedAt).toLocaleDateString() : 'N/A'}
               </p>
               {improvement !== null && (
                 <p className={`text-xs mt-1 ${improvement >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -172,7 +200,7 @@ export default function ProgressDashboard() {
             </div>
           ) : eligibility && eligibility.isEligible ? (
             <div>
-              <p className="text-green-400 font-medium mb-2 text-sm">🎉 You're ready to take the post-assessment!</p>
+              <p className="text-green-400 font-medium mb-2 text-sm">🎉 You&apos;re ready to take the post-assessment!</p>
               <button 
                 onClick={handleTakePostAssessment}
                 className="w-full px-3 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-medium text-sm transition-all shadow-lg hover:shadow-green-500/50"

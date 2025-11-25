@@ -95,7 +95,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <p className="text-white/50 text-xs mt-4">
-              To change your email, password, or name, click on your profile icon in the top right corner and select "Manage account"
+              To change your email, password, or name, click on your profile icon in the top right corner and select &quot;Manage account&quot;
             </p>
           </div>
 

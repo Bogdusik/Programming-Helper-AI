@@ -9,7 +9,7 @@ export default function PostAssessmentProgress() {
   const { data: eligibility, isLoading } = trpc.assessment.checkPostAssessmentEligibility.useQuery()
   const { data: assessments } = trpc.assessment.getAssessments.useQuery()
   
-  const postAssessment = (assessments as any[])?.find((a: any) => a.type === 'post')
+  const postAssessment = assessments?.find((a: Assessment) => a.type === 'post')
   
   // Don't show if already completed
   if (postAssessment) {

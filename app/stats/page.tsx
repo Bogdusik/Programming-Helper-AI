@@ -48,7 +48,7 @@ export default function StatsPage() {
         language: userProfile?.primaryLanguage || undefined,
       })
       // Transform database questions to AssessmentQuestion format
-      const transformedQuestions: AssessmentQuestion[] = questions.map((q: any) => ({
+      const transformedQuestions: AssessmentQuestion[] = questions.map((q: { id: string; question: string; type: string; options?: string[] | string | null; correctAnswer: string; category: string; difficulty: string; explanation?: string | null }) => ({
         id: q.id,
         question: q.question,
         type: q.type as 'multiple_choice' | 'code_snippet' | 'conceptual',
@@ -65,7 +65,7 @@ export default function StatsPage() {
     }
   }
 
-  const handleAssessmentSubmit = async (answers: any[], confidence: number) => {
+  const handleAssessmentSubmit = async (answers: Array<{ questionId: string; answer: string; isCorrect?: boolean }>, confidence: number) => {
     try {
       await submitAssessmentMutation.mutateAsync({
         type: 'post',

@@ -274,7 +274,7 @@ export default function FAQPage() {
             </h1>
             <p className="text-white/70 text-lg max-w-2xl mx-auto">
               Find answers to common questions about Programming Helper AI. 
-              Can't find what you're looking for? <Link href="/contact" className="text-blue-400 hover:text-blue-300 underline transition-colors">Contact us</Link>.
+              Can&apos;t find what you&apos;re looking for? <Link href="/contact" className="text-blue-400 hover:text-blue-300 underline transition-colors">Contact us</Link>.
             </p>
           </div>
 
@@ -361,7 +361,7 @@ export default function FAQPage() {
               Still have questions?
             </h2>
             <p className="text-white/70 mb-6">
-              Can't find the answer you're looking for? Please get in touch with our friendly team.
+              Can&apos;t find the answer you&apos;re looking for? Please get in touch with our friendly team.
             </p>
             <Link
               href="/contact"
