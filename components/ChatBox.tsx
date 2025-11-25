@@ -54,9 +54,27 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
   )
   
   // OPTIMIZATION: Memoize task progress calculations to avoid unnecessary recalculations
+  // Use explicit type casting to avoid deep type recursion
+  type SimpleTaskProgress = {
+    id: string
+    taskId: string
+    chatSessionId: string | null
+    status: string
+    task?: {
+      id: string
+      title: string
+      language: string
+      difficulty: string
+      category: string
+      description: string
+    }
+  }
+  
   const associatedProgress = useMemo(() => {
     if (!sessionId || !allTaskProgress) return null
-    return allTaskProgress?.find((progress) => {
+    // Cast to simpler type to avoid "Type instantiation is excessively deep" error
+    const progressArray = allTaskProgress as unknown as SimpleTaskProgress[]
+    return progressArray.find((progress) => {
       const matchesSession = progress.chatSessionId === sessionId
       if (taskId) {
         return matchesSession && progress.taskId === taskId
@@ -72,10 +90,29 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
     [taskId, associatedProgress]
   )
   
-  const currentTask = useMemo(() => 
-    shouldUseTaskId ? taskData : (sessionId ? associatedTask : null),
-    [shouldUseTaskId, taskData, sessionId, associatedTask]
-  )
+  // Use explicit type casting to avoid deep type recursion
+  type SimpleTask = {
+    id: string
+    title: string
+    language: string
+    difficulty: string
+    category: string
+    description: string
+  }
+  
+  // Extract simple values to avoid deep type recursion in useMemo dependencies
+  const taskDataSimple = taskData ? (taskData as unknown as SimpleTask) : null
+  const associatedTaskSimple = associatedTask ? (associatedTask as SimpleTask) : null
+  
+  const currentTask = useMemo((): SimpleTask | null => {
+    if (shouldUseTaskId && taskDataSimple) {
+      return taskDataSimple
+    }
+    if (sessionId && associatedTaskSimple) {
+      return associatedTaskSimple
+    }
+    return null
+  }, [shouldUseTaskId, taskDataSimple, sessionId, associatedTaskSimple])
   
   const effectiveTaskId = useMemo(() => 
     shouldUseTaskId ? taskId : (sessionId ? (associatedTask?.id || associatedProgress?.taskId) : null),
