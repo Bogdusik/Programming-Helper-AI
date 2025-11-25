@@ -10,7 +10,19 @@ import { db } from './db'
  * @throws TRPCError with FORBIDDEN code if user is blocked
  */
 export async function getCurrentUser() {
-  const user = await currentUser()
+  let user
+  try {
+    user = await currentUser()
+  } catch (error) {
+    // Handle cases where Clerk can't find the user (e.g., user was deleted, not fully created, etc.)
+    // Log the error for debugging but don't throw - return null to indicate user is not authenticated
+    if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
+      // User not found in Clerk - this can happen during registration or if user was deleted
+      return null
+    }
+    // For other errors, re-throw them
+    throw error
+  }
   
   if (!user) {
     return null
