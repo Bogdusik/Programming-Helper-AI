@@ -6,6 +6,8 @@ import BlockedCheck from '../components/BlockedCheck'
 import Footer from '../components/Footer'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { Toaster } from 'react-hot-toast'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import "./globals.css";
 
 const geistSans = Geist({
@@ -80,6 +82,8 @@ export default function RootLayout({
                   },
                 }}
               />
+              <Analytics />
+              <SpeedInsights />
             </TRPCProvider>
           </ErrorBoundary>
         </body>

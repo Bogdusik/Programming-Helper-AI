@@ -104,7 +104,7 @@ export async function GET() {
           note: isAdmin ? 'You have admin role' : 'To get admin role, add your email to ADMIN_EMAILS in Vercel'
         }
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If unique constraint error, user was created concurrently, fetch it
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         await new Promise(resolve => setTimeout(resolve, 300))
