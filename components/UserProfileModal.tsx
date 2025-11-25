@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 
 interface UserProfileModalProps {
   isOpen: boolean
@@ -94,7 +95,7 @@ export default function UserProfileModal({ isOpen, onClose, onComplete, isOption
     } else {
       // Validate required fields
       if (!formData.experience || !formData.aiExperience || formData.preferredLanguages.length === 0) {
-        alert('Please complete all required fields')
+        toast.error('Please complete all required fields')
         return
       }
       onComplete(formData)
