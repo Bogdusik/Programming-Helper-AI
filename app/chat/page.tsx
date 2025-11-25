@@ -55,19 +55,82 @@ function ChatPageContent() {
   useEffect(() => {
     if (profileError?.data?.code === 'FORBIDDEN' && profileError.message === 'User account is blocked') {
       router.push('/blocked')
+      return
     }
-  }, [profileError, router])
+    
+    // Auto-retry on UNAUTHORIZED or INTERNAL_SERVER_ERROR (Not Found) - user might be creating
+    if (profileError && isSignedIn && isLoaded) {
+      const errorCode = profileError.data?.code
+      const httpStatus = profileError.data?.httpStatus
+      // Check for Clerk "not found" errors - use type assertion for cause
+      const errorWithCause = profileError as { cause?: unknown }
+      const cause = errorWithCause.cause
+      const isNotFound = httpStatus === 404 || 
+        (errorCode === 'INTERNAL_SERVER_ERROR' && profileError.message === 'Not Found') ||
+        (cause && typeof cause === 'object' && cause !== null && 'clerkError' in cause)
+      
+      if (errorCode === 'UNAUTHORIZED' || isNotFound) {
+        // Wait a bit and retry - user might be in the process of being created
+        const retryTimer = setTimeout(() => {
+          refetchProfile()
+        }, 1000)
+        return () => clearTimeout(retryTimer)
+      }
+    }
+  }, [profileError, router, isSignedIn, isLoaded, refetchProfile])
   
-  const { data: onboardingStatus, refetch: refetchOnboarding } = trpc.onboarding.getOnboardingStatus.useQuery(undefined, {
+  const { data: onboardingStatus, refetch: refetchOnboarding, error: onboardingError } = trpc.onboarding.getOnboardingStatus.useQuery(undefined, {
     enabled: isSignedIn,
     staleTime: 0, // Always fetch fresh data to prevent showing tour multiple times
     refetchOnMount: 'always', // Always refetch when component mounts
   })
   
-  const { data: preAssessment, refetch: refetchAssessment } = trpc.assessment.getAssessments.useQuery(undefined, {
+  // Auto-retry onboarding status on errors
+  useEffect(() => {
+    if (onboardingError && isSignedIn && isLoaded) {
+      const errorCode = onboardingError.data?.code
+      const httpStatus = onboardingError.data?.httpStatus
+      // Check for Clerk "not found" errors - use type assertion for cause
+      const errorWithCause = onboardingError as { cause?: unknown }
+      const cause = errorWithCause.cause
+      const isNotFound = httpStatus === 404 || 
+        (errorCode === 'INTERNAL_SERVER_ERROR' && onboardingError.message === 'Not Found') ||
+        (cause && typeof cause === 'object' && cause !== null && 'clerkError' in cause)
+      
+      if (errorCode === 'UNAUTHORIZED' || isNotFound) {
+        const retryTimer = setTimeout(() => {
+          refetchOnboarding()
+        }, 1000)
+        return () => clearTimeout(retryTimer)
+      }
+    }
+  }, [onboardingError, isSignedIn, isLoaded, refetchOnboarding])
+  
+  const { data: preAssessment, refetch: refetchAssessment, error: assessmentError } = trpc.assessment.getAssessments.useQuery(undefined, {
     enabled: isSignedIn,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   })
+  
+  // Auto-retry assessment on errors
+  useEffect(() => {
+    if (assessmentError && isSignedIn && isLoaded) {
+      const errorCode = assessmentError.data?.code
+      const httpStatus = assessmentError.data?.httpStatus
+      // Check for Clerk "not found" errors - use type assertion for cause
+      const errorWithCause = assessmentError as { cause?: unknown }
+      const cause = errorWithCause.cause
+      const isNotFound = httpStatus === 404 || 
+        (errorCode === 'INTERNAL_SERVER_ERROR' && assessmentError.message === 'Not Found') ||
+        (cause && typeof cause === 'object' && cause !== null && 'clerkError' in cause)
+      
+      if (errorCode === 'UNAUTHORIZED' || isNotFound) {
+        const retryTimer = setTimeout(() => {
+          refetchAssessment()
+        }, 1000)
+        return () => clearTimeout(retryTimer)
+      }
+    }
+  }, [assessmentError, isSignedIn, isLoaded, refetchAssessment])
   
   // Extract pre-assessment check to avoid type inference issues
   const hasPreAssessment = useMemo(() => {
