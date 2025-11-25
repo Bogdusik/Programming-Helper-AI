@@ -26,17 +26,59 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
   
   // Check if user has completed onboarding (profile and pre-assessment)
   // This prevents sending messages before completing required steps
-  const { data: userProfile } = trpc.profile.getProfile.useQuery(undefined, {
+  const { data: userProfile, refetch: refetchProfile, error: profileError } = trpc.profile.getProfile.useQuery(undefined, {
     enabled: true,
     staleTime: 5 * 60 * 1000,
   })
   
-  const { data: preAssessment } = trpc.assessment.getAssessments.useQuery(undefined, {
+  const { data: preAssessment, refetch: refetchAssessment, error: assessmentError } = trpc.assessment.getAssessments.useQuery(undefined, {
     enabled: true,
     staleTime: 5 * 60 * 1000,
   })
+  
+  // Auto-retry on errors (user might be creating)
+  useEffect(() => {
+    if (profileError) {
+      const errorCode = profileError.data?.code
+      const httpStatus = profileError.data?.httpStatus
+      // Check for Clerk "not found" errors - use type assertion for cause
+      const errorWithCause = profileError as { cause?: unknown }
+      const cause = errorWithCause.cause
+      const isNotFound = httpStatus === 404 || 
+        (errorCode === 'INTERNAL_SERVER_ERROR' && profileError.message === 'Not Found') ||
+        (cause && typeof cause === 'object' && cause !== null && 'clerkError' in cause)
+      
+      if (errorCode === 'UNAUTHORIZED' || isNotFound) {
+        const retryTimer = setTimeout(() => {
+          refetchProfile()
+        }, 1000)
+        return () => clearTimeout(retryTimer)
+      }
+    }
+  }, [profileError, refetchProfile])
+  
+  useEffect(() => {
+    if (assessmentError) {
+      const errorCode = assessmentError.data?.code
+      const httpStatus = assessmentError.data?.httpStatus
+      // Check for Clerk "not found" errors - use type assertion for cause
+      const errorWithCause = assessmentError as { cause?: unknown }
+      const cause = errorWithCause.cause
+      const isNotFound = httpStatus === 404 || 
+        (errorCode === 'INTERNAL_SERVER_ERROR' && assessmentError.message === 'Not Found') ||
+        (cause && typeof cause === 'object' && cause !== null && 'clerkError' in cause)
+      
+      if (errorCode === 'UNAUTHORIZED' || isNotFound) {
+        const retryTimer = setTimeout(() => {
+          refetchAssessment()
+        }, 1000)
+        return () => clearTimeout(retryTimer)
+      }
+    }
+  }, [assessmentError, refetchAssessment])
   
   const hasPreAssessment = preAssessment?.some(a => a.type === 'pre') ?? false
+  // Note: primaryLanguage is not required for chat to work - it's optional
   const isOnboardingComplete = userProfile?.profileCompleted && hasPreAssessment
   
   const sendMessageMutation = trpc.chat.sendMessage.useMutation()
