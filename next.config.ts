@@ -4,13 +4,12 @@ const nextConfig: NextConfig = {
   // Enable React strict mode for better development experience
   reactStrictMode: true,
   
-  // Temporarily disable ESLint and TypeScript checks during builds to allow deployment
-  // TODO: Fix ESLint errors and re-enable this
+  // ESLint and TypeScript checks enabled for better code quality
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   
   // Note: swcMinify is enabled by default in Next.js 15+ and no longer needs to be specified
