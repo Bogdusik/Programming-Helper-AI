@@ -33,5 +33,5 @@ echo "✅ Full backup exported to local-db-full.sql"
 echo ""
 echo "Next steps:"
 echo "1. Review the exported files"
-echo "2. Import to Neon database using: ./import-to-neon.sh"
+echo "2. Import to Neon database using: ./scripts/import-to-neon.sh"
 
