@@ -289,25 +289,42 @@ function ChatPageContent() {
         language: userProfile?.primaryLanguage ?? undefined,
       })
       // Transform questions to AssessmentQuestion format explicitly
-      const transformedQuestions: AssessmentQuestion[] = questions.map((q: {
+      // Use type assertion to avoid deep type inference issues
+      const transformedQuestions: AssessmentQuestion[] = (questions as Array<{
         id: string
         question: string
         type: string
-        options?: unknown
+        options: unknown
         correctAnswer: string
-        category?: string
-        difficulty?: string
-        explanation?: string
-      }) => ({
-        id: q.id,
-        question: q.question,
-        type: q.type as 'multiple_choice' | 'code_snippet' | 'conceptual',
-        options: Array.isArray(q.options) ? q.options : (q.options ? [q.options] : undefined),
-        correctAnswer: q.correctAnswer,
-        category: q.category,
-        difficulty: q.difficulty,
-        explanation: q.explanation || undefined,
-      }))
+        category: string | null
+        difficulty: string | null
+        explanation: string | null
+      }>).map((q) => {
+        // Convert options to string array if it exists
+        let options: string[] | undefined = undefined
+        if (q.options) {
+          if (Array.isArray(q.options)) {
+            // Filter out null values and convert to strings
+            options = q.options
+              .filter((opt): opt is string => typeof opt === 'string' && opt !== null)
+              .map(opt => String(opt))
+          } else {
+            // Single value, convert to array
+            options = [String(q.options)]
+          }
+        }
+        
+        return {
+          id: q.id,
+          question: q.question,
+          type: q.type as 'multiple_choice' | 'code_snippet' | 'conceptual',
+          options,
+          correctAnswer: q.correctAnswer,
+          category: q.category ?? '',
+          difficulty: q.difficulty ?? '',
+          explanation: q.explanation ?? undefined, // Convert null to undefined
+        }
+      })
       setAssessmentQuestions(transformedQuestions)
       // Show pre-assessment modal after questions are loaded
       if (transformedQuestions.length > 0) {
@@ -345,7 +362,7 @@ function ChatPageContent() {
   const handleAssessmentSubmit = async (answers: Array<{
     questionId: string
     answer: string
-    isCorrect: boolean
+    isCorrect?: boolean
   }>, confidence: number) => {
     try {
       await submitAssessmentMutation.mutateAsync({
