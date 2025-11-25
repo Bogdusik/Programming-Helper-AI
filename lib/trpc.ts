@@ -220,14 +220,14 @@ export const appRouter = router({
 
         // Check if user has completed onboarding (profile and pre-assessment)
         // This prevents users from sending messages before completing required steps
-        const userData = await db.user.findUnique({
+        const userProfileCheck = await db.user.findUnique({
           where: { id: user.id },
           select: {
             profileCompleted: true,
           },
         })
 
-        if (!userData?.profileCompleted) {
+        if (!userProfileCheck?.profileCompleted) {
           logger.warn('User attempted to send message before completing profile', user.id)
           throw new TRPCError({
             code: 'PRECONDITION_FAILED',
