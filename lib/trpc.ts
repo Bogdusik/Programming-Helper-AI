@@ -53,7 +53,6 @@ const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
     if (error instanceof TRPCError && error.code === 'TIMEOUT') {
       logger.error('tRPC operation timed out', user.id, {
         timeoutMs,
-        path: ctx.path,
       })
     }
     throw error
