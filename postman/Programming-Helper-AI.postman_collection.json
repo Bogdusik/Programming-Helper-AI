@@ -1,0 +1,675 @@
+{
+	"info": {
+		"_postman_id": "programming-helper-ai-collection",
+		"name": "Programming Helper AI - API Collection",
+		"description": "Complete API collection for Programming Helper AI application. Includes REST endpoints and tRPC procedures.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health & Status",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/health",
+							"host": ["{{base_url}}"],
+							"path": ["api", "health"]
+						},
+						"description": "Check application and database health status"
+					},
+					"response": []
+				},
+				{
+					"name": "Diagnose System",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/diagnose",
+							"host": ["{{base_url}}"],
+							"path": ["api", "diagnose"]
+						},
+						"description": "Get detailed system diagnostics including database connection, environment variables, and user table structure"
+					},
+					"response": []
+				},
+				{
+					"name": "Check Database",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/check-database",
+							"host": ["{{base_url}}"],
+							"path": ["api", "check-database"]
+						},
+						"description": "Check database connection and basic queries"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for checking system health and status"
+		},
+		{
+			"name": "User Management",
+			"item": [
+				{
+					"name": "Check Blocked Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/check-blocked",
+							"host": ["{{base_url}}"],
+							"path": ["api", "check-blocked"]
+						},
+						"description": "Check if current user is blocked. Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Create User",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/create-user",
+							"host": ["{{base_url}}"],
+							"path": ["api", "create-user"]
+						},
+						"description": "Create a new user (admin endpoint)"
+					},
+					"response": []
+				},
+				{
+					"name": "Check Admin Data",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/check-admin-data",
+							"host": ["{{base_url}}"],
+							"path": ["api", "check-admin-data"]
+						},
+						"description": "Check admin user data and configuration"
+					},
+					"response": []
+				},
+				{
+					"name": "Fix Admin Role",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/fix-admin-role",
+							"host": ["{{base_url}}"],
+							"path": ["api", "fix-admin-role"]
+						},
+						"description": "Fix admin role for users (admin utility endpoint)"
+					},
+					"response": []
+				}
+			],
+			"description": "User management and authentication endpoints"
+		},
+		{
+			"name": "Tasks & Data",
+			"item": [
+				{
+					"name": "Seed Tasks",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/seed-tasks",
+							"host": ["{{base_url}}"],
+							"path": ["api", "seed-tasks"]
+						},
+						"description": "Seed programming tasks into the database"
+					},
+					"response": []
+				},
+				{
+					"name": "Final Schema Sync",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/final-schema-sync",
+							"host": ["{{base_url}}"],
+							"path": ["api", "final-schema-sync"]
+						},
+						"description": "Final database schema synchronization"
+					},
+					"response": []
+				}
+			],
+			"description": "Task seeding and database management endpoints"
+		},
+		{
+			"name": "tRPC Endpoints",
+			"item": [
+				{
+					"name": "Chat",
+					"item": [
+						{
+							"name": "Create Session",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"New Chat Session\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/trpc/chat.createSession",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "chat.createSession"]
+								},
+								"description": "Create a new chat session"
+							},
+							"response": []
+						},
+						{
+							"name": "Get Sessions",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/trpc/chat.getSessions",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "chat.getSessions"]
+								},
+								"description": "Get all chat sessions for current user"
+							},
+							"response": []
+						},
+						{
+							"name": "Send Message",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"message\": \"How do I implement a binary search in JavaScript?\",\n  \"sessionId\": \"{{session_id}}\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/trpc/chat.sendMessage",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "chat.sendMessage"]
+								},
+								"description": "Send a message to the AI assistant"
+							},
+							"response": []
+						},
+						{
+							"name": "Get Messages",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/trpc/chat.getMessages?input={\"sessionId\":\"{{session_id}}\"}",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "chat.getMessages"],
+									"query": [
+										{
+											"key": "input",
+											"value": "{\"sessionId\":\"{{session_id}}\"}"
+										}
+									]
+								},
+								"description": "Get messages for a specific session"
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Session",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"sessionId\": \"{{session_id}}\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/trpc/chat.deleteSession",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "chat.deleteSession"]
+								},
+								"description": "Delete a chat session"
+							},
+							"response": []
+						}
+					],
+					"description": "Chat-related tRPC procedures"
+				},
+				{
+					"name": "Stats",
+					"item": [
+						{
+							"name": "Get User Stats",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/trpc/stats.getUserStats",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "stats.getUserStats"]
+								},
+								"description": "Get statistics for current user"
+							},
+							"response": []
+						},
+						{
+							"name": "Get Global Stats",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/trpc/stats.getGlobalStats",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "stats.getGlobalStats"]
+								},
+								"description": "Get global application statistics (public)"
+							},
+							"response": []
+						}
+					],
+					"description": "Statistics-related tRPC procedures"
+				},
+				{
+					"name": "Tasks",
+					"item": [
+						{
+							"name": "Get Tasks",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/trpc/task.getTasks?input={\"language\":\"javascript\",\"difficulty\":\"beginner\"}",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "task.getTasks"],
+									"query": [
+										{
+											"key": "input",
+											"value": "{\"language\":\"javascript\",\"difficulty\":\"beginner\"}"
+										}
+									]
+								},
+								"description": "Get programming tasks with optional filters"
+							},
+							"response": []
+						},
+						{
+							"name": "Get Task",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/trpc/task.getTask?input={\"taskId\":\"{{task_id}}\"}",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "task.getTask"],
+									"query": [
+										{
+											"key": "input",
+											"value": "{\"taskId\":\"{{task_id}}\"}"
+										}
+									]
+								},
+								"description": "Get a specific task by ID"
+							},
+							"response": []
+						},
+						{
+							"name": "Complete Task",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"taskId\": \"{{task_id}}\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/trpc/task.completeTask",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "task.completeTask"]
+								},
+								"description": "Mark a task as completed"
+							},
+							"response": []
+						},
+						{
+							"name": "Get Task Progress",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/trpc/task.getTaskProgress?input={\"taskId\":\"{{task_id}}\"}",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "task.getTaskProgress"],
+									"query": [
+										{
+											"key": "input",
+											"value": "{\"taskId\":\"{{task_id}}\"}"
+										}
+									]
+								},
+								"description": "Get progress for a specific task or all tasks"
+							},
+							"response": []
+						}
+					],
+					"description": "Task-related tRPC procedures"
+				},
+				{
+					"name": "Profile",
+					"item": [
+						{
+							"name": "Get Profile",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/trpc/profile.getProfile",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "profile.getProfile"]
+								},
+								"description": "Get user profile information"
+							},
+							"response": []
+						},
+						{
+							"name": "Update Profile",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"experience\": \"intermediate\",\n  \"focusAreas\": [\"algorithms\", \"data-structures\"],\n  \"confidence\": 3,\n  \"aiExperience\": \"some\",\n  \"preferredLanguages\": [\"javascript\", \"python\"],\n  \"primaryLanguage\": \"javascript\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/trpc/profile.updateProfile",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "profile.updateProfile"]
+								},
+								"description": "Update user profile"
+							},
+							"response": []
+						},
+						{
+							"name": "Get Language Progress",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/trpc/profile.getLanguageProgress",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "profile.getLanguageProgress"]
+								},
+								"description": "Get language learning progress"
+							},
+							"response": []
+						}
+					],
+					"description": "Profile-related tRPC procedures"
+				},
+				{
+					"name": "Assessment",
+					"item": [
+						{
+							"name": "Get Questions",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"type\": \"pre\",\n  \"language\": \"javascript\",\n  \"difficulty\": \"beginner\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/trpc/assessment.getQuestions",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "assessment.getQuestions"]
+								},
+								"description": "Get assessment questions (pre or post)"
+							},
+							"response": []
+						},
+						{
+							"name": "Submit Assessment",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"type\": \"pre\",\n  \"language\": \"javascript\",\n  \"answers\": [\n    {\n      \"questionId\": \"question-id-1\",\n      \"answer\": \"user-answer\",\n      \"isCorrect\": true\n    }\n  ],\n  \"confidence\": 4\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/trpc/assessment.submitAssessment",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "assessment.submitAssessment"]
+								},
+								"description": "Submit assessment answers"
+							},
+							"response": []
+						},
+						{
+							"name": "Get Assessments",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/trpc/assessment.getAssessments",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "assessment.getAssessments"]
+								},
+								"description": "Get all assessments for current user"
+							},
+							"response": []
+						},
+						{
+							"name": "Check Post Assessment Eligibility",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/trpc/assessment.checkPostAssessmentEligibility",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "assessment.checkPostAssessmentEligibility"]
+								},
+								"description": "Check if user is eligible for post-assessment"
+							},
+							"response": []
+						}
+					],
+					"description": "Assessment-related tRPC procedures"
+				},
+				{
+					"name": "Contact",
+					"item": [
+						{
+							"name": "Send Contact Message",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"subject\": \"Question about API\",\n  \"message\": \"I have a question about how to use the API endpoints.\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/trpc/contact.sendMessage",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "contact.sendMessage"]
+								},
+								"description": "Send a contact form message (public endpoint)"
+							},
+							"response": []
+						}
+					],
+					"description": "Contact form tRPC procedures"
+				},
+				{
+					"name": "Admin",
+					"item": [
+						{
+							"name": "Get Dashboard Stats",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/trpc/admin.getDashboardStats",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "admin.getDashboardStats"]
+								},
+								"description": "Get admin dashboard statistics (admin only)"
+							},
+							"response": []
+						},
+						{
+							"name": "Get Users",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/trpc/admin.getUsers?input={\"page\":1,\"limit\":20}",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "admin.getUsers"],
+									"query": [
+										{
+											"key": "input",
+											"value": "{\"page\":1,\"limit\":20}"
+										}
+									]
+								},
+								"description": "Get paginated list of users (admin only)"
+							},
+							"response": []
+						},
+						{
+							"name": "Get All Tasks",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/trpc/admin.getAllTasks?input={\"page\":1,\"limit\":20}",
+									"host": ["{{base_url}}"],
+									"path": ["api", "trpc", "admin.getAllTasks"],
+									"query": [
+										{
+											"key": "input",
+											"value": "{\"page\":1,\"limit\":20}"
+										}
+									]
+								},
+								"description": "Get all tasks with pagination (admin only)"
+							},
+							"response": []
+						}
+					],
+					"description": "Admin-only tRPC procedures"
+				}
+			],
+			"description": "tRPC API endpoints. Note: tRPC uses a specific format. For proper testing, use the tRPC client or format requests according to tRPC protocol."
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "task_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+
