@@ -246,7 +246,7 @@ function TaskPageContent() {
       <Navbar />
       <MinimalBackground />
       
-      <div className="container mx-auto px-4 py-2 sm:py-3 max-w-7xl flex-1 flex flex-col min-h-0">
+      <div className="container mx-auto px-4 py-2 sm:py-3 max-w-7xl flex flex-col">
         <div className="mb-2 flex items-center justify-between flex-wrap gap-2 flex-shrink-0">
           <button
             onClick={() => router.push('/tasks')}
@@ -271,7 +271,7 @@ function TaskPageContent() {
           </div>
         </div>
         
-        <div className="bg-white/10 backdrop-blur-lg rounded-lg border border-white/20 p-1.5 sm:p-2 mb-2 flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="bg-white/10 backdrop-blur-lg rounded-lg border border-white/20 p-1.5 sm:p-2 mb-2 flex flex-col overflow-hidden" style={{ height: '500px', maxHeight: '500px' }}>
           <CodeEditor
             question={questionText}
             value={code}
