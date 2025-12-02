@@ -26,10 +26,17 @@ export default function Navbar() {
     enabled: isSignedIn,
   })
   
-  const { data: userRole } = trpc.auth.getMyRole.useQuery(undefined, {
+  const { data: userRole, error: roleError } = trpc.auth.getMyRole.useQuery(undefined, {
     enabled: isSignedIn,
     retry: false,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    // Don't log UNAUTHORIZED errors as they're expected for unregistered users
+    onError: (error) => {
+      // Only log non-UNAUTHORIZED errors
+      if (error.data?.code !== 'UNAUTHORIZED') {
+        console.error('Error fetching user role:', error)
+      }
+    }
   })
   
   const isAdmin = user?.publicMetadata?.role === 'admin' || userRole?.role === 'admin'
