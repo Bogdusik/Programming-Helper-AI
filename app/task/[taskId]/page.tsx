@@ -242,7 +242,7 @@ function TaskPageContent() {
       <Navbar />
       <MinimalBackground />
       
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
+      <div className="container mx-auto px-4 py-6 max-w-7xl pb-24">
         <div className="mb-4 flex items-center justify-between flex-wrap gap-4">
           <button
             onClick={() => router.push('/tasks')}
@@ -279,32 +279,34 @@ function TaskPageContent() {
           />
         </div>
         
-        <div className="bg-white/10 backdrop-blur-lg rounded-lg border border-white/20 p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-            <button
-              onClick={handleContinueInChat}
-              className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
-            >
-              Continue in Chat
-            </button>
-            
-            <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+        <div className="bg-white/10 backdrop-blur-lg rounded-lg border border-white/20 p-4 sm:p-6 mb-6">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <button
-                onClick={() => {
-                  const starterCode = (taskData as { starterCode?: string | null })?.starterCode || ''
-                  setCode(starterCode)
-                }}
+                onClick={handleContinueInChat}
                 className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
               >
-                Reset to Starter Code
+                Continue in Chat
               </button>
-              <button
-                onClick={handleSubmitCode}
-                disabled={!code.trim() || isSubmitting}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit Code'}
-              </button>
+              
+              <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+                <button
+                  onClick={() => {
+                    const starterCode = (taskData as { starterCode?: string | null })?.starterCode || ''
+                    setCode(starterCode)
+                  }}
+                  className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                >
+                  Reset to Starter Code
+                </button>
+                <button
+                  onClick={handleSubmitCode}
+                  disabled={!code.trim() || isSubmitting}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Code'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
