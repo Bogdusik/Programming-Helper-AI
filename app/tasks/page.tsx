@@ -85,7 +85,9 @@ export default function TasksPage() {
     }
   }, [allTasks, isLoading, isSignedIn, languagesToFilter, selectedDifficulty, preferredLanguages, primaryLanguage, selectedLanguage, tasksError])
   
-  // Limit tasks to 5 maximum (as required for post-assessment unlock)
+  // Limit tasks based on number of selected languages:
+  // - 1 language: 3 tasks
+  // - 2+ languages: 3 tasks per language (e.g., 2 languages = 6 tasks)
   // Distribute tasks across selected languages if multiple languages are selected
   const tasks = useMemo(() => {
     if (!allTasks || allTasks.length === 0) return []
@@ -93,16 +95,14 @@ export default function TasksPage() {
     // Cast to TaskWithProgress[] since includeProgress: true
     const tasksWithProgress = allTasks as unknown as TaskWithProgress[]
     
-    // If only one language or no specific languages, show all tasks (up to reasonable limit)
-    // Changed from 5 to show more tasks for better user experience
+    // If only one language or no specific languages, show 3 tasks
     if (!languagesToFilter || languagesToFilter.length <= 1) {
-      // Show up to 20 tasks if filtered by single language, or all if no filter
-      return tasksWithProgress.slice(0, 20)
+      return tasksWithProgress.slice(0, 3)
     }
     
-    // If multiple languages, distribute tasks evenly, but ensure we get enough tasks
-    const maxTasks = 20
-    const tasksPerLanguage = Math.ceil(maxTasks / languagesToFilter.length)
+    // If multiple languages, show 3 tasks per language
+    const tasksPerLanguage = 3
+    const maxTasks = tasksPerLanguage * languagesToFilter.length
     const tasksByLanguage: { [key: string]: TaskWithProgress[] } = {}
     
     // Group tasks by language
@@ -114,33 +114,18 @@ export default function TasksPage() {
       tasksByLanguage[lang].push(task)
     }
     
-    // Take tasks from each language
+    // Take exactly 3 tasks from each language
     const result: TaskWithProgress[] = []
     for (const lang of languagesToFilter) {
       const langLower = lang.toLowerCase()
       const langTasks = tasksByLanguage[langLower] || []
-      const needed = maxTasks - result.length
-      const toTake = Math.min(tasksPerLanguage, needed, langTasks.length)
+      // Take up to 3 tasks from this language
+      const toTake = Math.min(tasksPerLanguage, langTasks.length)
       result.push(...langTasks.slice(0, toTake))
-      if (result.length >= maxTasks) break
     }
     
-    // If we still don't have enough tasks, fill from remaining tasks regardless of language
-    if (result.length < maxTasks && tasksWithProgress) {
-      // Extract IDs as strings to avoid deep type recursion
-      const usedTaskIds = new Set<string>(
-        (result as Array<{ id: string }>).map((t) => t.id)
-      )
-      for (const task of tasksWithProgress) {
-        if (!usedTaskIds.has(task.id)) {
-          result.push(task)
-          if (result.length >= maxTasks) break
-        }
-      }
-    }
-    
-    // Return up to 20 tasks if multiple languages, or all if less
-    return result.slice(0, 20)
+    // Return the result (should be exactly 3 * number of languages, or less if not enough tasks available)
+    return result.slice(0, maxTasks)
   }, [allTasks, languagesToFilter])
   
   const utils = trpc.useUtils()
