@@ -414,22 +414,7 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
                   </span>
                 </div>
                 <p className="text-white/80 text-lg mb-4 leading-relaxed">{currentTask.description}</p>
-                <p className="text-white/50 text-sm mb-4">Work on this task with AI assistance. Ask questions, get hints, or request code reviews!</p>
-                {effectiveTaskId && (
-                  <button
-                    onClick={() => {
-                      window.location.href = `/task/${effectiveTaskId}`
-                    }}
-                    className="mt-4 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
-                  >
-                    <div className="flex items-center justify-center space-x-2">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                      </svg>
-                      <span>Open Code Editor</span>
-                    </div>
-                  </button>
-                )}
+                <p className="text-white/50 text-sm">Work on this task with AI assistance. Ask questions, get hints, or request code reviews!</p>
               </div>
             ) : (
               // Default welcome message
@@ -586,35 +571,51 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
                 </div>
               </div>
               
-              {/* Complete Button */}
-              {!isTaskCompleted ? (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (effectiveTaskId && onTaskComplete) {
-                      if (confirm('Are you sure you want to mark this task as complete?')) {
-                        await onTaskComplete(effectiveTaskId)
-                        // Invalidate and refetch task progress to update UI
-                        await utils.task.getTaskProgress.invalidate({ taskId: effectiveTaskId })
-                        await refetchTaskProgress()
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                {effectiveTaskId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.location.href = `/task/${effectiveTaskId}`
+                    }}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 flex items-center justify-center space-x-2"
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                    <span>Open Code Editor</span>
+                  </button>
+                )}
+                {!isTaskCompleted ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (effectiveTaskId && onTaskComplete) {
+                        if (confirm('Are you sure you want to mark this task as complete?')) {
+                          await onTaskComplete(effectiveTaskId)
+                          // Invalidate and refetch task progress to update UI
+                          await utils.task.getTaskProgress.invalidate({ taskId: effectiveTaskId })
+                          await refetchTaskProgress()
+                        }
                       }
-                    }
-                  }}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-green-500/25 flex items-center justify-center space-x-2"
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Mark Task as Complete</span>
-                </button>
-              ) : (
-                <div className="w-full px-4 py-3 bg-gradient-to-r from-green-600/50 to-green-700/50 text-green-300 rounded-xl text-sm font-medium flex items-center justify-center space-x-2 cursor-not-allowed">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Task Completed</span>
-                </div>
-              )}
+                    }}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-green-500/25 flex items-center justify-center space-x-2"
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Mark Task as Complete</span>
+                  </button>
+                ) : (
+                  <div className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600/50 to-green-700/50 text-green-300 rounded-xl text-sm font-medium flex items-center justify-center space-x-2 cursor-not-allowed">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Task Completed</span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
