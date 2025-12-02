@@ -2029,8 +2029,9 @@ export const appRouter = router({
         let difficulty = input.difficulty
         let excludedQuestionIds: string[] = []
         
+        // For post-assessment: use the SAME questions as pre-assessment to compare progress
         if (input.type === 'post') {
-          // For post-assessment: get pre-assessment results
+          // Get pre-assessment results to reuse the same questions
           const preAssessment = await db.assessment.findFirst({
             where: {
               userId: user.id,
@@ -2040,57 +2041,37 @@ export const appRouter = router({
           })
           
           if (preAssessment) {
-            // Extract question IDs from pre-assessment answers
+            // Extract question IDs from pre-assessment answers - these are the questions we want to reuse
             const preAnswers = preAssessment.answers
             if (Array.isArray(preAnswers)) {
-              excludedQuestionIds = (preAnswers as unknown as Array<{ questionId?: string }>)
+              const preQuestionIds = (preAnswers as unknown as Array<{ questionId?: string }>)
                 .map((a) => a?.questionId)
                 .filter((id): id is string => typeof id === 'string' && id.length > 0)
-            }
-            
-            // Determine difficulty based on pre-assessment performance
-            const preScore = preAssessment.score || 0
-            const preTotal = preAssessment.totalQuestions || 15
-            const prePercentage = (preScore / preTotal) * 100
-            
-            // Get the difficulty level used in pre-assessment
-            // We'll infer it from the user's assessed level
-            const userProfile = await db.user.findUnique({
-              where: { id: user.id },
-              select: { assessedLevel: true },
-            })
-            
-            const assessedLevel = userProfile?.assessedLevel || 'beginner'
-            
-            // If user scored >= 80% in pre-assessment, use harder questions
-            // Otherwise, use same difficulty level but different questions
-            if (prePercentage >= 80) {
-              // Use harder difficulty
-              if (assessedLevel === 'beginner') {
-                difficulty = 'intermediate'
-              } else if (assessedLevel === 'intermediate') {
-                difficulty = 'advanced'
-              } else {
-                // Already advanced, stay at advanced
-                difficulty = 'advanced'
+              
+              // Get the same questions from pre-assessment
+              const preQuestions = await db.assessmentQuestion.findMany({
+                where: { id: { in: preQuestionIds } }
+              })
+              
+              // Return the same questions in random order (to avoid memorization)
+              const shuffled = [...preQuestions]
+              for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
               }
-            } else {
-              // Use same difficulty as pre-assessment
-              difficulty = assessedLevel === 'expert' ? 'advanced' 
-                          : assessedLevel === 'advanced' ? 'advanced'
-                          : assessedLevel === 'intermediate' ? 'intermediate'
-                          : 'beginner'
+              
+              return shuffled
             }
-          } else {
-            // No pre-assessment found, fall back to default logic
-            const userProfile = await db.user.findUnique({
-              where: { id: user.id },
-              select: { selfReportedLevel: true, assessedLevel: true },
-            })
-            
-            const level = userProfile?.assessedLevel || userProfile?.selfReportedLevel || 'beginner'
-            difficulty = level === 'expert' ? 'advanced' : level === 'advanced' ? 'intermediate' : 'beginner'
           }
+          
+          // If no pre-assessment found, fall back to default logic
+          const userProfile = await db.user.findUnique({
+            where: { id: user.id },
+            select: { selfReportedLevel: true, assessedLevel: true },
+          })
+          
+          const level = userProfile?.assessedLevel || userProfile?.selfReportedLevel || 'beginner'
+          difficulty = level === 'expert' ? 'advanced' : level === 'advanced' ? 'intermediate' : 'beginner'
         } else {
           // For pre-assessment: use default logic
           if (!difficulty) {
@@ -2105,23 +2086,20 @@ export const appRouter = router({
         }
 
         // Get all available questions for the difficulty and language
-        // Exclude questions that were already used in pre-assessment
         const allQuestions = await db.assessmentQuestion.findMany({
           where: {
             language: input.language || null, // If no language specified, get general questions (language = null)
             difficulty: difficulty,
-            ...(excludedQuestionIds.length > 0 ? { id: { notIn: excludedQuestionIds } } : {}),
           },
         })
 
-        // If not enough questions, get more from general (excluding pre-assessment questions)
+        // If not enough questions, get more from general
         let questions = allQuestions
-        if (allQuestions.length < 10) {
+        if (allQuestions.length < 6) {
           const generalQuestions = await db.assessmentQuestion.findMany({
             where: {
               language: null,
               difficulty: difficulty,
-              ...(excludedQuestionIds.length > 0 ? { id: { notIn: excludedQuestionIds } } : {}),
             },
           })
           // Combine and remove duplicates
@@ -2132,25 +2110,7 @@ export const appRouter = router({
           ]
         }
 
-        // If still not enough questions after excluding pre-assessment ones,
-        // allow reusing some questions (but prefer new ones)
-        if (questions.length < 15 && input.type === 'post') {
-          const fallbackQuestions = await db.assessmentQuestion.findMany({
-            where: {
-              language: input.language || null, // If no language specified, get general questions
-              difficulty: difficulty,
-            },
-            take: 20, // Get more to have options
-          })
-          
-          // Combine, prioritizing questions not in pre-assessment
-          const existingIds = new Set(questions.map(q => q.id))
-          const newQuestions = fallbackQuestions.filter(q => !existingIds.has(q.id))
-          questions = [...questions, ...newQuestions].slice(0, 20)
-        }
-
-        // Define categories for comprehensive assessment (like real tech interviews)
-        // Map existing categories to new interview-style categories
+        // Define categories for assessment
         const categoryMapping: Record<string, string[]> = {
           'attention_to_detail': ['attention_to_detail', 'debugging'],
           'problem_solving': ['problem_solving', 'algorithms', 'logic'],
@@ -2181,25 +2141,26 @@ export const appRouter = router({
           }
         }
         
-        // Select questions from each category (4-5 per category for 25-30 total)
-        const targetTotal = 30
+        // For pre-assessment: select 5-6 questions (1 per category, prioritizing different categories)
+        // For post-assessment: this code should not be reached (handled above), but keep for safety
+        const targetTotal = input.type === 'pre' ? 6 : 6 // Use 6 questions for both
         const categories = Object.keys(questionsByCategory).filter(cat => questionsByCategory[cat].length > 0)
-        const questionsPerCategory = Math.floor(targetTotal / Math.max(categories.length, 1))
+        const questionsPerCategory = Math.max(1, Math.floor(targetTotal / Math.max(categories.length, 1)))
         const selectedQuestions: typeof questions = []
         const usedQuestionIds = new Set<string>()
         
-        // First pass: select questions from each category
+        // First pass: select 1 question from each category (to ensure variety)
         for (const category of categories) {
           const categoryQuestions = questionsByCategory[category] || []
-          if (categoryQuestions.length > 0) {
+          if (categoryQuestions.length > 0 && selectedQuestions.length < targetTotal) {
             // Shuffle category questions
             const shuffled = [...categoryQuestions].filter(q => !usedQuestionIds.has(q.id))
             for (let i = shuffled.length - 1; i > 0; i--) {
               const j = Math.floor(Math.random() * (i + 1));
               [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
             }
-            // Take questions from this category
-            const toTake = Math.min(questionsPerCategory, shuffled.length)
+            // Take 1 question from this category
+            const toTake = Math.min(1, shuffled.length)
             const selected = shuffled.slice(0, toTake)
             selectedQuestions.push(...selected)
             selected.forEach(q => usedQuestionIds.add(q.id))
@@ -2207,14 +2168,14 @@ export const appRouter = router({
         }
         
         // If we don't have enough questions from categories, fill with random questions
-        if (selectedQuestions.length < 25) {
+        if (selectedQuestions.length < targetTotal) {
           const remainingQuestions = questions.filter(q => !usedQuestionIds.has(q.id))
           const shuffled = [...remainingQuestions]
           for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
           }
-          const needed = Math.min(30 - selectedQuestions.length, shuffled.length)
+          const needed = Math.min(targetTotal - selectedQuestions.length, shuffled.length)
           selectedQuestions.push(...shuffled.slice(0, needed))
         }
         
@@ -2225,8 +2186,8 @@ export const appRouter = router({
           [finalShuffled[i], finalShuffled[j]] = [finalShuffled[j], finalShuffled[i]]
         }
         
-        // Return 25-30 questions (prefer 30, but at least 25)
-        return finalShuffled.slice(0, Math.max(25, Math.min(30, finalShuffled.length)))
+        // Return 5-6 questions for pre-assessment
+        return finalShuffled.slice(0, Math.min(targetTotal, finalShuffled.length))
       }),
 
     submitAssessment: protectedProcedure
