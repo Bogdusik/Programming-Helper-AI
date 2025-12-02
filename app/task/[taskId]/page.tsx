@@ -246,32 +246,33 @@ function TaskPageContent() {
       <Navbar />
       <MinimalBackground />
       
-      <div className="container mx-auto px-4 max-w-7xl flex-1 flex flex-col justify-center">
-        <div className="mb-4 flex items-center justify-between flex-wrap gap-2 flex-shrink-0">
-          <button
-            onClick={() => router.push('/tasks')}
-            className="text-white/70 hover:text-white flex items-center space-x-2 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            <span>Back to Tasks</span>
-          </button>
-          
-          <div className="flex items-center space-x-2 flex-wrap">
-            <span className="px-3 py-1 bg-blue-500/20 text-blue-300 text-sm rounded-full capitalize">
-              {taskDataTyped.language}
-            </span>
-            <span className="px-3 py-1 bg-purple-500/20 text-purple-300 text-sm rounded-full capitalize">
-              {taskDataTyped.difficulty}
-            </span>
-            <span className="px-3 py-1 bg-orange-500/20 text-orange-300 text-sm rounded-full capitalize">
-              {taskDataTyped.category}
-            </span>
+      <div className="container mx-auto px-4 max-w-7xl flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col justify-center py-8">
+          <div className="mb-4 flex items-center justify-between flex-wrap gap-2 flex-shrink-0">
+            <button
+              onClick={() => router.push('/tasks')}
+              className="text-white/70 hover:text-white flex items-center space-x-2 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              <span>Back to Tasks</span>
+            </button>
+            
+            <div className="flex items-center space-x-2 flex-wrap">
+              <span className="px-3 py-1 bg-blue-500/20 text-blue-300 text-sm rounded-full capitalize">
+                {taskDataTyped.language}
+              </span>
+              <span className="px-3 py-1 bg-purple-500/20 text-purple-300 text-sm rounded-full capitalize">
+                {taskDataTyped.difficulty}
+              </span>
+              <span className="px-3 py-1 bg-orange-500/20 text-orange-300 text-sm rounded-full capitalize">
+                {taskDataTyped.category}
+              </span>
+            </div>
           </div>
-        </div>
-        
-        <div className="flex-1 flex flex-col">
+          
+          <div className="flex flex-col">
           <div className="bg-white/10 backdrop-blur-lg rounded-lg border border-white/20 p-1.5 sm:p-2 mb-4 flex flex-col overflow-hidden" style={{ height: '500px', maxHeight: '500px' }}>
             <CodeEditor
               question={questionText}
@@ -345,6 +346,7 @@ function TaskPageContent() {
                 {isSubmitting ? 'Submitting...' : 'Submit Code'}
               </button>
             </div>
+          </div>
           </div>
           </div>
         </div>
