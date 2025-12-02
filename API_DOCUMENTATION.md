@@ -5,9 +5,9 @@ Complete API documentation for Programming Helper AI project.
 ## Table of Contents
 
 - [REST API Endpoints](#rest-api-endpoints)
-  - [Health & Status](#health--status)
-  - [User Management](#user-management)
-  - [Tasks & Data](#tasks--data)
+- [Health & Status](#health--status)
+- [User Management](#user-management)
+- [Tasks & Data](#tasks--data)
 - [tRPC API](#trpc-api)
 - [Authentication](#authentication)
 - [Usage Examples](#usage-examples)
@@ -34,11 +34,13 @@ Health check endpoint for application and database status. Used for monitoring a
 **Parameters**: None
 
 **Request Example:**
+
 ```bash
 GET /api/health
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "status": "healthy",
@@ -50,6 +52,7 @@ GET /api/health
 ```
 
 **Error Response (503 Service Unavailable):**
+
 ```json
 {
   "status": "unhealthy",
@@ -72,11 +75,13 @@ Comprehensive system diagnostics: database connection, environment variables, ta
 **Parameters**: None
 
 **Request Example:**
+
 ```bash
 GET /api/diagnose
 ```
 
 **Response Example:**
+
 ```json
 {
   "timestamp": "2025-11-30T20:00:00.000Z",
@@ -112,11 +117,13 @@ Check database connection and execute basic queries.
 **Parameters**: None
 
 **Request Example:**
+
 ```bash
 GET /api/check-database
 ```
 
 **Response Example:**
+
 ```json
 {
   "success": true,
@@ -141,12 +148,14 @@ Creates a user in the database if they don't exist. Synchronizes user from Clerk
 **Parameters**: None
 
 **Request Example:**
+
 ```bash
 GET /api/create-user
 Cookie: __session=eyJhbGciOiJSUzI1NiIs...
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -161,6 +170,7 @@ Cookie: __session=eyJhbGciOiJSUzI1NiIs...
 ```
 
 **Response if user already exists:**
+
 ```json
 {
   "success": true,
@@ -175,6 +185,7 @@ Cookie: __session=eyJhbGciOiJSUzI1NiIs...
 ```
 
 **Error Responses:**
+
 - `401 Unauthorized` - User is not authenticated
 - `500 Internal Server Error` - Error creating user
 
@@ -189,12 +200,14 @@ Checks if the current user is blocked.
 **Parameters**: None
 
 **Request Example:**
+
 ```bash
 GET /api/check-blocked
 Cookie: __session=eyJhbGciOiJSUzI1NiIs...
 ```
 
 **Response Example:**
+
 ```json
 {
   "isBlocked": false
@@ -202,6 +215,7 @@ Cookie: __session=eyJhbGciOiJSUzI1NiIs...
 ```
 
 **If user is not authenticated:**
+
 ```json
 {
   "isBlocked": false
@@ -219,11 +233,13 @@ Checks admin user data and configuration.
 **Parameters**: None
 
 **Request Example:**
+
 ```bash
 GET /api/check-admin-data
 ```
 
 **Response Example:**
+
 ```json
 {
   "adminEmails": ["admin@example.com"],
@@ -248,11 +264,13 @@ Fixes admin role for users (admin utility endpoint).
 **Parameters**: None
 
 **Request Example:**
+
 ```bash
 GET /api/fix-admin-role
 ```
 
 **Response Example:**
+
 ```json
 {
   "success": true,
@@ -276,6 +294,7 @@ Seeds programming tasks into the database. Creates new tasks or updates existing
 **Body**: Empty object `{}`
 
 **Request Example:**
+
 ```bash
 POST /api/seed-tasks
 Content-Type: application/json
@@ -284,6 +303,7 @@ Content-Type: application/json
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -311,6 +331,7 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
+
 - `500 Internal Server Error` - Error seeding tasks
 
 ---
@@ -326,6 +347,7 @@ Synchronizes database schema with Prisma schema. Removes old columns, adds new o
 **Body**: Empty object `{}`
 
 **Request Example:**
+
 ```bash
 POST /api/final-schema-sync
 Content-Type: application/json
@@ -334,6 +356,7 @@ Content-Type: application/json
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -359,6 +382,7 @@ Content-Type: application/json
 ## tRPC API
 
 All main application endpoints use tRPC. tRPC provides:
+
 - Automatic type safety
 - Data validation
 - Type-safe clients
@@ -370,11 +394,13 @@ All main application endpoints use tRPC. tRPC provides:
 ### Request Format
 
 **GET requests:**
+
 ```
 GET /api/trpc/{procedure}?input={JSON}
 ```
 
 **POST requests:**
+
 ```
 POST /api/trpc/{procedure}
 Content-Type: application/json
@@ -438,7 +464,7 @@ The application uses [Clerk](https://clerk.com) for authentication. Authenticati
 ### How to Get Access
 
 1. **In Browser**: Log in to the application - cookies will be set automatically
-2. **In Postman**: 
+2. **In Postman**:
    - Use Postman Interceptor to sync cookies
    - Or copy the `__session` cookie from browser and add it to Postman
 
