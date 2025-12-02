@@ -5,9 +5,10 @@ import { db } from './db'
 
 /**
  * Get current authenticated user from Clerk and database
- * Creates user in database if doesn't exist
- * @returns User object from database or null if not authenticated
+ * Does NOT create user automatically - user must be registered through sign-up
+ * @returns User object from database or null if not authenticated or not registered
  * @throws TRPCError with FORBIDDEN code if user is blocked
+ * @throws TRPCError with UNAUTHORIZED code if user is not registered (doesn't exist in database)
  */
 export async function getCurrentUser() {
   let user
@@ -61,137 +62,13 @@ export async function getCurrentUser() {
     })
   }
 
-  // If user doesn't exist, create it
-  // Use try-catch with retry logic to handle race conditions where user might be created concurrently
+  // If user doesn't exist, throw UNAUTHORIZED error
+  // User must be registered through sign-up before they can use the application
   if (!dbUser) {
-    
-    let retries = 5 // Increased retries
-    let lastError: Error | null = null
-    
-    while (retries > 0 && !dbUser) {
-      try {
-        dbUser = await db.user.create({
-          data: {
-            id: user.id, // This is already anonymous from Clerk
-            role: isAdmin ? 'admin' : 'user',
-            isBlocked: false
-          }
-        })
-        break // Success, exit loop
-      } catch (error: unknown) {
-        lastError = error instanceof Error ? error : new Error(String(error))
-        
-        // Check if it's an email constraint error - use raw SQL fallback
-        const isEmailConstraintError = 
-          error instanceof Error && error.message.includes('email')
-        
-        if (isEmailConstraintError && retries === 5) {
-          // First attempt failed due to email, make email nullable and retry
-          // Note: ALTER TABLE doesn't support parameters, but this is safe as it's a static command
-          // and only runs if email column exists (which is checked by error message)
-          try {
-            await db.$executeRawUnsafe(`ALTER TABLE users ALTER COLUMN email DROP NOT NULL`)
-          } catch (alterError) {
-            // Column might not exist or already nullable, continue
-          }
-          // Retry with Prisma
-          retries--
-          continue
-        }
-        
-        // Check if it's a Prisma unique constraint error
-        const isUniqueConstraintError = 
-          (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') ||
-          (error instanceof Error && (
-            error.message.includes('Unique constraint') || 
-            error.message.includes('Unique constraint failed')
-          ))
-        
-        if (isUniqueConstraintError) {
-          // Wait longer and try to fetch the user again
-          await new Promise(resolve => setTimeout(resolve, 300))
-          dbUser = await db.user.findUnique({
-            where: { id: user.id },
-            select: {
-              id: true,
-              role: true,
-              isBlocked: true,
-              createdAt: true,
-              updatedAt: true
-            }
-          })
-          // If found, exit loop
-          if (dbUser) {
-            break
-          }
-          // If not found and retries left, try again with longer delay
-          retries--
-          if (retries > 0) {
-            await new Promise(resolve => setTimeout(resolve, 200))
-            continue
-          }
-        } else if (isEmailConstraintError && retries < 5) {
-          // Email constraint after making nullable - use parameterized SQL to prevent injection
-          try {
-            // Use Prisma.$executeRaw with Prisma.sql for safe parameterized queries
-            await db.$executeRaw`
-              INSERT INTO users (id, role, "isBlocked", "createdAt", "updatedAt")
-              VALUES (${user.id}, ${isAdmin ? 'admin' : 'user'}, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-              ON CONFLICT (id) DO NOTHING
-            `
-            
-            await new Promise(resolve => setTimeout(resolve, 200))
-            dbUser = await db.user.findUnique({
-              where: { id: user.id },
-              select: {
-                id: true,
-                role: true,
-                isBlocked: true,
-                createdAt: true,
-                updatedAt: true
-              }
-            })
-            if (dbUser) {
-              break
-            }
-          } catch (sqlError) {
-            // SQL failed, continue to next retry
-          }
-          retries--
-          if (retries > 0) {
-            await new Promise(resolve => setTimeout(resolve, 200))
-            continue
-          }
-        } else {
-          // If it's not a unique constraint error, throw immediately
-          throw error
-        }
-      }
-    }
-    
-    // Final check - if still not found after all retries, try one more time to fetch
-    if (!dbUser) {
-      await new Promise(resolve => setTimeout(resolve, 500))
-      dbUser = await db.user.findUnique({
-        where: { id: user.id },
-        select: {
-          id: true,
-          role: true,
-          isBlocked: true,
-          createdAt: true,
-          updatedAt: true
-        }
-      })
-      
-      // If still not found, throw error
-      if (!dbUser) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to create or retrieve user after multiple attempts',
-          cause: lastError || undefined
-        })
-      }
-    }
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'User not registered. Please sign up first.'
+    })
   }
 
   // Check if user is blocked

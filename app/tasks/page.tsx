@@ -11,6 +11,7 @@ import type { inferRouterOutputs } from '@trpc/server'
 import type { AppRouter } from '../../lib/trpc'
 
 import { useBlockedStatus } from '../../hooks/useBlockedStatus'
+import { useUserRegistrationCheck } from '../../hooks/useUserRegistrationCheck'
 import toast from 'react-hot-toast'
 
 // Infer router outputs to avoid deep type recursion
@@ -33,11 +34,12 @@ export default function TasksPage() {
     skipPaths: ['/blocked', '/contact'],
     enabled: isSignedIn && isLoaded,
   })
+  const { isCheckingUserExists } = useUserRegistrationCheck()
   const [selectedLanguage, setSelectedLanguage] = useState<string | undefined>()
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | undefined>()
   
   const { data: userProfile } = trpc.profile.getProfile.useQuery(undefined, {
-    enabled: isSignedIn,
+    enabled: isSignedIn && !isCheckingUserExists,
   })
   
   // Use preferred languages from profile, or fall back to selectedLanguage filter
@@ -157,7 +159,7 @@ export default function TasksPage() {
     }
   }, [isLoaded, isSignedIn, isBlocked, router])
 
-  if (!isLoaded || isLoading || (isSignedIn && isCheckingBlocked) || (isSignedIn && isBlocked)) {
+  if (!isLoaded || isLoading || (isSignedIn && isCheckingBlocked) || (isSignedIn && isBlocked) || isCheckingUserExists) {
     return <LoadingSpinner />
   }
 
