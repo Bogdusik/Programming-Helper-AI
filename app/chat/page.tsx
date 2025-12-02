@@ -37,6 +37,7 @@ function ChatPageContent() {
   const [assessmentQuestions, setAssessmentQuestions] = useState<AssessmentQuestion[]>([])
   const [taskInitialized, setTaskInitialized] = useState(false)
   const [isCheckingUserExists, setIsCheckingUserExists] = useState(false)
+  const [hasCheckedUserExists, setHasCheckedUserExists] = useState(false)
   
   // Check if user is blocked - this should redirect via BlockedCheck, but adding extra safety
   const { isBlocked, isLoading: isCheckingBlocked } = useBlockedStatus({
@@ -47,13 +48,17 @@ function ChatPageContent() {
   // Check if user was registered through sign-up (exists in database)
   // If user signed in without sign-up, redirect to sign-up
   // Also create user if they came from sign-up (has ?fromSignUp=true in URL)
+  // Only check once when component mounts and user is loaded
   useEffect(() => {
     const checkUserRegistration = async () => {
-      if (!isLoaded || !isSignedIn || !user?.id || isCheckingUserExists) {
+      // Only check once, and only if user is loaded and signed in
+      if (!isLoaded || !isSignedIn || !user?.id || hasCheckedUserExists || isCheckingUserExists) {
         return
       }
       
       setIsCheckingUserExists(true)
+      setHasCheckedUserExists(true)
+      
       try {
         // Check if user came from sign-up page
         const fromSignUp = searchParams.get('fromSignUp') === 'true'
@@ -81,6 +86,7 @@ function ChatPageContent() {
         // Redirect them to sign-up page
         if (!data.exists) {
           router.replace('/sign-up?message=Please register first to use this application')
+          setIsCheckingUserExists(false)
           return
         }
       } catch (error) {
@@ -92,7 +98,8 @@ function ChatPageContent() {
     }
     
     checkUserRegistration()
-  }, [isLoaded, isSignedIn, user?.id, router, isCheckingUserExists, searchParams])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, isSignedIn, user?.id])
   
   // OPTIMIZATION: Add staleTime to cache data and improve navigation speed
   // But use refetchOnMount to ensure fresh data when component mounts
