@@ -206,6 +206,23 @@ export async function getCurrentUser() {
 }
 
 /**
+ * Check if user exists in database without creating them
+ * Used to verify if user was registered through sign-up
+ * @returns true if user exists, false otherwise
+ */
+export async function checkUserExists(userId: string): Promise<boolean> {
+  try {
+    const dbUser = await db.user.findUnique({
+      where: { id: userId },
+      select: { id: true }
+    })
+    return !!dbUser
+  } catch {
+    return false
+  }
+}
+
+/**
  * Check if current user has admin role
  * @returns true if user is admin, false otherwise
  */

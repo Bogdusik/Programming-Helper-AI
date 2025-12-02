@@ -36,12 +36,63 @@ function ChatPageContent() {
   const [showResearchConsent, setShowResearchConsent] = useState(false)
   const [assessmentQuestions, setAssessmentQuestions] = useState<AssessmentQuestion[]>([])
   const [taskInitialized, setTaskInitialized] = useState(false)
+  const [isCheckingUserExists, setIsCheckingUserExists] = useState(false)
   
   // Check if user is blocked - this should redirect via BlockedCheck, but adding extra safety
   const { isBlocked, isLoading: isCheckingBlocked } = useBlockedStatus({
     skipPaths: ['/blocked', '/contact'],
     enabled: isSignedIn && isLoaded,
   })
+  
+  // Check if user was registered through sign-up (exists in database)
+  // If user signed in without sign-up, redirect to sign-up
+  // Also create user if they came from sign-up (has ?fromSignUp=true in URL)
+  useEffect(() => {
+    const checkUserRegistration = async () => {
+      if (!isLoaded || !isSignedIn || !user?.id || isCheckingUserExists) {
+        return
+      }
+      
+      setIsCheckingUserExists(true)
+      try {
+        // Check if user came from sign-up page
+        const fromSignUp = searchParams.get('fromSignUp') === 'true'
+        
+        // If user came from sign-up, create them in database
+        if (fromSignUp) {
+          try {
+            await fetch('/api/create-user')
+            // Remove the parameter from URL
+            const newUrl = new URL(window.location.href)
+            newUrl.searchParams.delete('fromSignUp')
+            router.replace(newUrl.pathname + newUrl.search)
+          } catch (error) {
+            console.error('Error creating user after sign-up:', error)
+          }
+          setIsCheckingUserExists(false)
+          return
+        }
+        
+        // Check if user exists in database
+        const response = await fetch('/api/check-user-exists')
+        const data = await response.json()
+        
+        // If user doesn't exist in database, they haven't registered through sign-up
+        // Redirect them to sign-up page
+        if (!data.exists) {
+          router.replace('/sign-up?message=Please register first to use this application')
+          return
+        }
+      } catch (error) {
+        console.error('Error checking user existence:', error)
+        // On error, allow access to prevent blocking legitimate users
+      } finally {
+        setIsCheckingUserExists(false)
+      }
+    }
+    
+    checkUserRegistration()
+  }, [isLoaded, isSignedIn, user?.id, router, isCheckingUserExists, searchParams])
   
   // OPTIMIZATION: Add staleTime to cache data and improve navigation speed
   // But use refetchOnMount to ensure fresh data when component mounts
@@ -315,8 +366,10 @@ function ChatPageContent() {
     }
     
     // Order: Profile → Pre-Assessment → Onboarding Tour (after consent)
+    // Step 1: Show profile modal (adjustment survey) if not completed
+    // This should appear immediately after consent, regardless of language selection
     if (userProfile) {
-      // Step 1: Show profile modal ONLY if not completed (rely on database, not local state)
+      // Show profile modal ONLY if not completed (rely on database, not local state)
       if (!userProfile.profileCompleted) {
         setShowProfileModal(true)
         setShowOnboarding(false)
@@ -520,7 +573,13 @@ function ChatPageContent() {
       // If user declines, redirect to home page
       router.push('/')
     } else {
-      // If consent given, trigger refetch to show profile modal
+      // If consent given, immediately show profile modal (adjustment survey)
+      // This ensures the survey appears right after consent, regardless of language selection
+      // Show modal immediately if profile is not completed, or if profile data is not loaded yet
+      if (!userProfile || !userProfile.profileCompleted) {
+        setShowProfileModal(true)
+      }
+      // Always refetch profile to ensure we have the latest data
       refetchProfile()
     }
   }
@@ -566,7 +625,7 @@ function ChatPageContent() {
     setRefreshTrigger(prev => prev + 1)
   }
 
-  if (!isLoaded) {
+  if (!isLoaded || isCheckingUserExists) {
     return <LoadingSpinner />
   }
 
