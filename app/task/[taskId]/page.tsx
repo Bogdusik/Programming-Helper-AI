@@ -271,7 +271,7 @@ function TaskPageContent() {
           </div>
         </div>
         
-        <div className="bg-white/10 backdrop-blur-lg rounded-lg border border-white/20 p-3 sm:p-4 mb-3 flex-1 flex flex-col min-h-0">
+        <div className="bg-white/10 backdrop-blur-lg rounded-lg border border-white/20 p-2 sm:p-3 mb-3 flex-1 flex flex-col min-h-0">
           <CodeEditor
             question={questionText}
             value={code}
