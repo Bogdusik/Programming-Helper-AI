@@ -103,8 +103,9 @@ function ChatPageContent() {
   
   // OPTIMIZATION: Add staleTime to cache data and improve navigation speed
   // But use refetchOnMount to ensure fresh data when component mounts
+  // Disable queries until user registration check is complete to prevent UNAUTHORIZED errors
   const { data: userProfile, refetch: refetchProfile, error: profileError } = trpc.profile.getProfile.useQuery(undefined, {
-    enabled: isSignedIn,
+    enabled: isSignedIn && hasCheckedUserExists && !isCheckingUserExists,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     refetchOnMount: 'always', // Always refetch when component mounts to get latest profileCompleted status
   })
@@ -138,7 +139,7 @@ function ChatPageContent() {
   }, [profileError, router, isSignedIn, isLoaded, refetchProfile])
   
   const { data: onboardingStatus, refetch: refetchOnboarding, error: onboardingError } = trpc.onboarding.getOnboardingStatus.useQuery(undefined, {
-    enabled: isSignedIn,
+    enabled: isSignedIn && hasCheckedUserExists && !isCheckingUserExists,
     staleTime: 0, // Always fetch fresh data to prevent showing tour multiple times
     refetchOnMount: 'always', // Always refetch when component mounts
   })
@@ -165,7 +166,7 @@ function ChatPageContent() {
   }, [onboardingError, isSignedIn, isLoaded, refetchOnboarding])
   
   const { data: preAssessment, refetch: refetchAssessment, error: assessmentError } = trpc.assessment.getAssessments.useQuery(undefined, {
-    enabled: isSignedIn,
+    enabled: isSignedIn && hasCheckedUserExists && !isCheckingUserExists,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   })
   
@@ -217,7 +218,7 @@ function ChatPageContent() {
   const sessionIdFromUrl = searchParams.get('sessionId')
   const { data: taskData } = trpc.task.getTask.useQuery(
     { taskId: taskId!, includeProgress: false },
-    { enabled: !!taskId && isSignedIn }
+    { enabled: !!taskId && isSignedIn && hasCheckedUserExists && !isCheckingUserExists }
   )
 
   // Handle task initialization when coming from tasks page
@@ -236,7 +237,7 @@ function ChatPageContent() {
   // Check if session has messages to determine if it's a new or existing session
   const { data: existingMessages, isLoading: isLoadingMessages } = trpc.chat.getMessages.useQuery(
     { sessionId: currentSessionId },
-    { enabled: !!currentSessionId && isSignedIn }
+    { enabled: !!currentSessionId && isSignedIn && hasCheckedUserExists && !isCheckingUserExists }
   )
 
   // Auto-send task description when task is loaded (only for new task starts)
