@@ -60,8 +60,8 @@ export default function CodeEditor({
   return (
     <div 
       id="code-editor-container"
-      className="flex border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm"
-      style={{ height }}
+      className="flex border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm h-full"
+      style={{ maxHeight: height === '100%' ? '600px' : undefined, height: height === '100%' ? '100%' : height }}
     >
       {/* Left side - Question/Description */}
       <div 
