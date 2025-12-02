@@ -65,11 +65,11 @@ export default function CodeEditor({
     >
       {/* Left side - Question/Description */}
       <div 
-        className="overflow-y-auto p-3 sm:p-4 bg-gray-50 border-r border-gray-300"
+        className="overflow-y-auto p-2 sm:p-3 bg-gray-50 border-r border-gray-300"
         style={{ width: `${leftWidth}%` }}
       >
-        <div className="prose prose-sm max-w-none">
-          <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+        <div className="text-sm text-gray-800 leading-normal">
+          <div className="whitespace-pre-wrap">
             {question}
           </div>
         </div>
@@ -92,8 +92,8 @@ export default function CodeEditor({
         style={{ width: `${100 - leftWidth}%` }}
       >
         {language && (
-          <div className="px-3 py-1.5 bg-gray-100 border-b border-gray-300 flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700">
+          <div className="px-2 py-1 bg-gray-100 border-b border-gray-300 flex items-center justify-between flex-shrink-0">
+            <span className="text-xs font-medium text-gray-700">
               {language}
             </span>
           </div>
@@ -102,7 +102,7 @@ export default function CodeEditor({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`flex-1 w-full p-3 sm:p-4 border-0 resize-none focus:outline-none ${
+          className={`flex-1 w-full p-2 sm:p-3 border-0 resize-none focus:outline-none min-h-0 ${
             isCode ? 'font-mono text-sm' : 'text-base'
           } text-gray-900 bg-white`}
           style={{ 
