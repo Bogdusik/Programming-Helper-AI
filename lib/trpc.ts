@@ -2027,7 +2027,6 @@ export const appRouter = router({
         const { user } = ctx
         
         let difficulty = input.difficulty
-        let excludedQuestionIds: string[] = []
         
         // For post-assessment: use the SAME questions as pre-assessment to compare progress
         if (input.type === 'post') {
@@ -2145,7 +2144,6 @@ export const appRouter = router({
         // For post-assessment: this code should not be reached (handled above), but keep for safety
         const targetTotal = input.type === 'pre' ? 6 : 6 // Use 6 questions for both
         const categories = Object.keys(questionsByCategory).filter(cat => questionsByCategory[cat].length > 0)
-        const questionsPerCategory = Math.max(1, Math.floor(targetTotal / Math.max(categories.length, 1)))
         const selectedQuestions: typeof questions = []
         const usedQuestionIds = new Set<string>()
         
