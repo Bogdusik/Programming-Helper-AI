@@ -247,7 +247,7 @@ function TaskPageContent() {
       <MinimalBackground />
       
       <div className="container mx-auto px-4 max-w-7xl flex-1 flex flex-col">
-        <div className="mb-4 flex items-center justify-between flex-wrap gap-2 flex-shrink-0 pt-4">
+        <div className="mb-4 flex items-center justify-between flex-wrap gap-2 flex-shrink-0 pt-8 mt-4">
           <button
             onClick={() => router.push('/tasks')}
             className="text-white/70 hover:text-white flex items-center space-x-2 transition-colors"
@@ -271,7 +271,7 @@ function TaskPageContent() {
           </div>
         </div>
         
-        <div className="flex-1 flex flex-col justify-center">
+        <div className="flex-1 flex flex-col">
           <div className="bg-white/10 backdrop-blur-lg rounded-lg border border-white/20 p-1.5 sm:p-2 mb-4 flex flex-col overflow-hidden" style={{ height: '500px', maxHeight: '500px' }}>
             <CodeEditor
               question={questionText}
