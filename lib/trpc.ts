@@ -1205,21 +1205,9 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const { taskId, ...updateData } = input
 
-        // Prepare data object, handling null values for arrays
-        const data: {
-          title?: string
-          description?: string
-          language?: string
-          difficulty?: string
-          category?: string
-          starterCode?: string | null
-          hints?: string[]
-          solution?: string | null
-          testCases?: unknown
-          examples?: unknown
-          constraints?: string[]
-          isActive?: boolean
-        } = {}
+        // Prepare data object, handling null values for arrays and JSON fields
+        // Use Prisma types for proper type safety
+        const data: Prisma.ProgrammingTaskUpdateInput = {}
 
         // Only include fields that are actually provided (not undefined)
         if (updateData.title !== undefined) data.title = updateData.title
@@ -1227,9 +1215,19 @@ export const appRouter = router({
         if (updateData.starterCode !== undefined) data.starterCode = updateData.starterCode
         if (updateData.hints !== undefined) data.hints = updateData.hints
         if (updateData.solution !== undefined) data.solution = updateData.solution
-        if (updateData.testCases !== undefined) data.testCases = updateData.testCases
-        if (updateData.examples !== undefined) data.examples = updateData.examples
         if (updateData.isActive !== undefined) data.isActive = updateData.isActive
+        
+        // Handle JSON fields: convert to Prisma JSON type
+        if (updateData.testCases !== undefined) {
+          data.testCases = updateData.testCases === null 
+            ? Prisma.JsonNull 
+            : (updateData.testCases as Prisma.InputJsonValue)
+        }
+        if (updateData.examples !== undefined) {
+          data.examples = updateData.examples === null 
+            ? Prisma.JsonNull 
+            : (updateData.examples as Prisma.InputJsonValue)
+        }
         
         // Handle constraints: null means set to empty array, undefined means don't update
         if (updateData.constraints !== undefined) {
