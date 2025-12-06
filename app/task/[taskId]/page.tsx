@@ -220,7 +220,7 @@ function TaskPageContent() {
     )
   }
   
-  // Use type assertion to avoid deep type recursion
+  // Use type assertion to avoid deep type recursion from tRPC types
   interface ExampleType {
     input: unknown
     output: unknown
@@ -240,7 +240,7 @@ function TaskPageContent() {
     error?: string
   }
 
-  const taskDataTyped = taskData as {
+  interface TaskDataTyped {
     title: string
     description: string
     language: string
@@ -252,6 +252,9 @@ function TaskPageContent() {
     constraints?: string[] | null
     testCases?: TestCaseType | TestCaseType[]
   }
+
+  // Use double assertion through unknown to avoid deep type recursion
+  const taskDataTyped = taskData as unknown as TaskDataTyped
 
   // Function to run tests on the code
   const handleRunTests = async (code: string): Promise<{ passed: number; failed: number; results: TestResultType[] }> => {
