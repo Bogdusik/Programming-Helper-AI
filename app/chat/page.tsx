@@ -160,6 +160,7 @@ function ChatPageContent() {
   const sendMessageMutation = trpc.chat.sendMessage.useMutation()
   const updateProgressMutation = trpc.task.updateTaskProgress.useMutation()
   const completeTaskMutation = trpc.task.completeTask.useMutation()
+  const utils = trpc.useUtils()
   
   // Get task data if taskId is in URL
   const taskId = searchParams.get('taskId')
@@ -186,7 +187,7 @@ function ChatPageContent() {
   }, [sessionIdFromUrl, currentSessionId])
 
   // Check if session has messages to determine if it's a new or existing session
-  const { data: existingMessages, isLoading: isLoadingMessages, refetch: refetchMessages } = trpc.chat.getMessages.useQuery(
+  const { data: existingMessages, isLoading: isLoadingMessages } = trpc.chat.getMessages.useQuery(
     { sessionId: currentSessionId },
     { enabled: !!currentSessionId && isSignedIn && hasCheckedUserExists && !isCheckingUserExists }
   )
@@ -440,8 +441,6 @@ function ChatPageContent() {
       console.error('Error loading assessment questions:', error)
     }
   }
-
-  const utils = trpc.useUtils()
   
   const handleProfileComplete = async (data: ProfileData) => {
     try {
