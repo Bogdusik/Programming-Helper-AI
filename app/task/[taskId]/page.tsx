@@ -11,6 +11,7 @@ import { trpc } from '../../../lib/trpc-client'
 import { useBlockedStatus } from '../../../hooks/useBlockedStatus'
 import { useUserRegistrationCheck } from '../../../hooks/useUserRegistrationCheck'
 import toast from 'react-hot-toast'
+import type { TaskDataTyped, TaskTestCase, TestResult } from '../../../lib/task-types'
 
 function TaskPageContent() {
   const { isSignedIn, isLoaded } = useUser()
@@ -220,44 +221,11 @@ function TaskPageContent() {
     )
   }
   
-  // Use type assertion to avoid deep type recursion from tRPC types
-  interface ExampleType {
-    input: unknown
-    output: unknown
-    explanation?: string
-  }
-
-  interface TestCaseType {
-    input?: unknown
-    output?: unknown
-    testCases?: TestCaseType[]
-  }
-
-  interface TestResultType {
-    passed: boolean
-    testCase?: unknown
-    expected?: unknown
-    error?: string
-  }
-
-  interface TaskDataTyped {
-    title: string
-    description: string
-    language: string
-    difficulty: string
-    category: string
-    hints?: string[]
-    starterCode?: string | null
-    examples?: ExampleType[] | null
-    constraints?: string[] | null
-    testCases?: TestCaseType | TestCaseType[]
-  }
-
-  // Use double assertion through unknown to avoid deep type recursion
+  // Use double assertion through unknown to avoid deep type recursion from tRPC types
   const taskDataTyped = taskData as unknown as TaskDataTyped
 
   // Function to run tests on the code
-  const handleRunTests = async (code: string): Promise<{ passed: number; failed: number; results: TestResultType[] }> => {
+  const handleRunTests = async (code: string): Promise<{ passed: number; failed: number; results: TestResult[] }> => {
     if (!taskDataTyped.testCases) {
       throw new Error('No test cases available for this task')
     }
@@ -266,9 +234,9 @@ function TaskPageContent() {
     // For now, we'll just validate the code structure and return mock results
     const testCasesArray = Array.isArray(taskDataTyped.testCases) 
       ? taskDataTyped.testCases 
-      : (taskDataTyped.testCases as TestCaseType)?.testCases || []
+      : (taskDataTyped.testCases as TaskTestCase)?.testCases || []
 
-    const results: TestResultType[] = testCasesArray.map((testCase: TestCaseType) => {
+    const results: TestResult[] = testCasesArray.map((testCase: TaskTestCase) => {
       // Basic validation - check if code contains the function
       // In a real implementation, you'd execute the code in a sandbox
       const hasFunction = code.includes('function') || code.includes('const') || code.includes('let')
