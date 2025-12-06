@@ -2,19 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import TaskDescription from './TaskDescription'
-
-interface Example {
-  input: string | number | boolean | null | Record<string, unknown> | unknown[]
-  output: string | number | boolean | null | Record<string, unknown> | unknown[]
-  explanation?: string
-}
-
-interface TestResult {
-  passed: boolean
-  testCase?: unknown
-  expected?: unknown
-  error?: string
-}
+import type { TaskExample, TestResult } from '../lib/task-types'
 
 interface TaskCodeEditorProps {
   title: string
@@ -24,7 +12,7 @@ interface TaskCodeEditorProps {
   category: string
   hints?: string[]
   starterCode?: string | null
-  examples?: Example[] | null
+  examples?: TaskExample[] | null
   constraints?: string[] | null
   testCases?: unknown
   value: string
