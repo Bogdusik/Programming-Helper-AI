@@ -1,10 +1,6 @@
 'use client'
 
-interface Example {
-  input: string | number | boolean | null | Record<string, unknown> | unknown[]
-  output: string | number | boolean | null | Record<string, unknown> | unknown[]
-  explanation?: string
-}
+import type { TaskExample } from '../lib/task-types'
 
 interface TaskDescriptionProps {
   title: string
@@ -14,7 +10,7 @@ interface TaskDescriptionProps {
   category: string
   hints?: string[]
   starterCode?: string | null
-  examples?: Example[] | null
+  examples?: TaskExample[] | null
   constraints?: string[] | null
 }
 
