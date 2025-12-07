@@ -13,6 +13,8 @@ import { trpc } from '../../lib/trpc-client'
 import { useBlockedStatus } from '../../hooks/useBlockedStatus'
 import { useUserRegistrationCheck } from '../../hooks/useUserRegistrationCheck'
 import toast from 'react-hot-toast'
+import { clientLogger } from '../../lib/client-logger'
+import { isClerkNotFoundError } from '../../lib/error-handler'
 
 // OPTIMIZATION: Lazy load heavy modal components that are not always needed
 const OnboardingTour = lazy(() => import('../../components/OnboardingTour'))
@@ -68,13 +70,7 @@ function ChatPageContent() {
     // Auto-retry on UNAUTHORIZED or INTERNAL_SERVER_ERROR (Not Found) - user might be creating
     if (profileError && isSignedIn && isLoaded) {
       const errorCode = profileError.data?.code
-      const httpStatus = profileError.data?.httpStatus
-      // Check for Clerk "not found" errors - use type assertion for cause
-      const errorWithCause = profileError as { cause?: unknown }
-      const cause = errorWithCause.cause
-      const isNotFound = httpStatus === 404 || 
-        (errorCode === 'INTERNAL_SERVER_ERROR' && profileError.message === 'Not Found') ||
-        (cause && typeof cause === 'object' && cause !== null && 'clerkError' in cause)
+      const isNotFound = isClerkNotFoundError(profileError)
       
       if (errorCode === 'UNAUTHORIZED' || isNotFound) {
         // Wait a bit and retry - user might be in the process of being created
@@ -96,13 +92,7 @@ function ChatPageContent() {
   useEffect(() => {
     if (onboardingError && isSignedIn && isLoaded) {
       const errorCode = onboardingError.data?.code
-      const httpStatus = onboardingError.data?.httpStatus
-      // Check for Clerk "not found" errors - use type assertion for cause
-      const errorWithCause = onboardingError as { cause?: unknown }
-      const cause = errorWithCause.cause
-      const isNotFound = httpStatus === 404 || 
-        (errorCode === 'INTERNAL_SERVER_ERROR' && onboardingError.message === 'Not Found') ||
-        (cause && typeof cause === 'object' && cause !== null && 'clerkError' in cause)
+      const isNotFound = isClerkNotFoundError(onboardingError)
       
       if (errorCode === 'UNAUTHORIZED' || isNotFound) {
         const retryTimer = setTimeout(() => {
@@ -122,13 +112,7 @@ function ChatPageContent() {
   useEffect(() => {
     if (assessmentError && isSignedIn && isLoaded) {
       const errorCode = assessmentError.data?.code
-      const httpStatus = assessmentError.data?.httpStatus
-      // Check for Clerk "not found" errors - use type assertion for cause
-      const errorWithCause = assessmentError as { cause?: unknown }
-      const cause = errorWithCause.cause
-      const isNotFound = httpStatus === 404 || 
-        (errorCode === 'INTERNAL_SERVER_ERROR' && assessmentError.message === 'Not Found') ||
-        (cause && typeof cause === 'object' && cause !== null && 'clerkError' in cause)
+      const isNotFound = isClerkNotFoundError(assessmentError)
       
       if (errorCode === 'UNAUTHORIZED' || isNotFound) {
         const retryTimer = setTimeout(() => {
@@ -253,7 +237,7 @@ function ChatPageContent() {
               newUrl.searchParams.delete('taskId')
               router.replace(newUrl.pathname + newUrl.search)
             }).catch((error) => {
-              console.error('Error sending task message:', error)
+              clientLogger.error('Error sending task message:', error)
               // Reset initialization state on error so user can retry
               setTaskInitialized(false)
             })
@@ -266,7 +250,7 @@ function ChatPageContent() {
             router.replace(newUrl.pathname + newUrl.search)
           }
         } catch (error) {
-          console.error('Error checking messages:', error)
+          clientLogger.error('Error checking messages:', error)
           // On error, mark as initialized to prevent infinite retries
           setTaskInitialized(true)
         }
@@ -438,7 +422,7 @@ function ChatPageContent() {
         setShowPreAssessment(true)
       }
     } catch (error) {
-      console.error('Error loading assessment questions:', error)
+      clientLogger.error('Error loading assessment questions:', error)
     }
   }
   
@@ -460,7 +444,7 @@ function ChatPageContent() {
       
       // Pre-assessment will be shown automatically via useEffect
     } catch (error) {
-      console.error('Error updating profile:', error)
+      clientLogger.error('Error updating profile:', error)
     }
   }
 
@@ -485,7 +469,7 @@ function ChatPageContent() {
       await refetchAssessment()
       // Onboarding tour will be shown automatically via useEffect
     } catch (error) {
-      console.error('Error submitting assessment:', error)
+      clientLogger.error('Error submitting assessment:', error)
     }
   }
 
@@ -506,7 +490,7 @@ function ChatPageContent() {
       // Force a refetch of profile to ensure consistency
       await refetchProfile()
     } catch (error) {
-      console.error('Error completing onboarding:', error)
+      clientLogger.error('Error completing onboarding:', error)
       // Even on error, hide the modal to prevent infinite loop
       setShowOnboarding(false)
     }
@@ -529,7 +513,7 @@ function ChatPageContent() {
       // Force a refetch of profile to ensure consistency
       await refetchProfile()
     } catch (error) {
-      console.error('Error skipping onboarding:', error)
+      clientLogger.error('Error skipping onboarding:', error)
       // Even on error, hide the modal to prevent infinite loop
       setShowOnboarding(false)
     }
@@ -566,7 +550,7 @@ function ChatPageContent() {
       // Refetch profile to update UI immediately
       await refetchProfile()
     } catch (error) {
-      console.error('Error updating languages:', error)
+      clientLogger.error('Error updating languages:', error)
     }
   }
 
@@ -748,7 +732,7 @@ function ChatPageContent() {
                     await utils.stats.getUserStats.invalidate()
                     toast.success('Task marked as completed! 🎉')
                   } catch (error) {
-                    console.error('Error completing task:', error)
+                    clientLogger.error('Error completing task:', error)
                     toast.error('Failed to complete task. Please try again.')
                   }
                 }}

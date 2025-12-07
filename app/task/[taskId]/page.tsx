@@ -12,6 +12,8 @@ import { useBlockedStatus } from '../../../hooks/useBlockedStatus'
 import { useUserRegistrationCheck } from '../../../hooks/useUserRegistrationCheck'
 import toast from 'react-hot-toast'
 import type { TaskDataTyped, TaskTestCase, TestResult } from '../../../lib/task-types'
+import { clientLogger } from '../../../lib/client-logger'
+import { getErrorMessage } from '../../../lib/error-handler'
 
 function TaskPageContent() {
   const { isSignedIn, isLoaded } = useUser()
@@ -99,7 +101,7 @@ function TaskPageContent() {
             chatSessionId: sessionId,
           })
         } catch (error) {
-          console.error('Error updating task progress:', error)
+          clientLogger.error('Error updating task progress:', error)
           // Continue anyway - session is created
         }
       }
@@ -122,12 +124,13 @@ function TaskPageContent() {
       // Navigate to chat with this session and taskId
       router.push(`/chat?sessionId=${sessionId}&taskId=${taskDataSimple.id}`)
     } catch (error) {
-      console.error('Error submitting code:', error)
+      clientLogger.error('Error submitting code:', error)
+      const errorMessage = getErrorMessage(error)
       // Check if error is about message length
-      if (error instanceof Error && error.message.includes('too long')) {
+      if (errorMessage.includes('too long')) {
         toast.error('Code is too long. Please shorten your code or split it into smaller parts.')
       } else {
-        toast.error('Failed to submit code. Please try again.')
+        toast.error(errorMessage || 'Failed to submit code. Please try again.')
       }
     } finally {
       setIsSubmitting(false)
@@ -170,7 +173,7 @@ function TaskPageContent() {
           }
         } catch (error) {
           // If we can't check, assume session is empty and create new one
-          console.warn('Could not verify session, creating new one:', error)
+          clientLogger.warn('Could not verify session, creating new one:', error)
         }
       }
       
@@ -188,14 +191,14 @@ function TaskPageContent() {
           chatSessionId: sessionId,
         })
       } catch (error) {
-        console.error('Error updating task progress:', error)
+        clientLogger.error('Error updating task progress:', error)
         // Continue anyway - session is created
       }
       
       // Navigate to chat with sessionId and taskId for initialization
       router.push(`/chat?sessionId=${sessionId}&taskId=${taskDataSimple.id}`)
     } catch (error) {
-      console.error('Error opening chat:', error)
+      clientLogger.error('Error opening chat:', error)
       toast.error('Failed to open chat. Please try again.')
     } finally {
       setIsCreatingSession(false)
@@ -365,7 +368,7 @@ function TaskPageContent() {
                     
                     toast.success('Task restarted! You can start fresh.')
                   } catch (error) {
-                    console.error('Error restarting task:', error)
+                    clientLogger.error('Error restarting task:', error)
                     toast.error('Failed to restart task. Please try again.')
                   }
                 }}
