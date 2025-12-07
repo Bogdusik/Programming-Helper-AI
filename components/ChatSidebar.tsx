@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import toast from 'react-hot-toast'
 import { trpc } from '../lib/trpc-client'
+import { clientLogger } from '../lib/client-logger'
 
 interface ChatSession {
   id: string
@@ -75,7 +76,7 @@ export default function ChatSidebar({ currentSessionId, onSessionSelect, onNewCh
         return message
       },
       error: (error: unknown) => {
-        console.error('Error deleting session:', error)
+        clientLogger.error('Error deleting session:', error)
         return error instanceof Error ? error.message : 'Failed to delete chat. Please try again.'
       },
     })
@@ -95,7 +96,7 @@ export default function ChatSidebar({ currentSessionId, onSessionSelect, onNewCh
         })
         await refetchSessions()
       } catch (error) {
-        console.error('Error updating title:', error)
+        clientLogger.error('Error updating title:', error)
         const errorMessage = error instanceof Error ? error.message : 'Failed to update title. Please try again.'
         toast.error(errorMessage)
       }
