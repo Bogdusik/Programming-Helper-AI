@@ -2,7 +2,7 @@
 
 import { useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useMemo, Suspense } from 'react'
+import { useEffect, useState, useMemo, useCallback, Suspense } from 'react'
 import Navbar from '../../components/Navbar'
 import MinimalBackground from '../../components/MinimalBackground'
 import LoadingSpinner from '../../components/LoadingSpinner'
@@ -13,6 +13,7 @@ import type { AppRouter } from '../../lib/trpc'
 import { useBlockedStatus } from '../../hooks/useBlockedStatus'
 import { useUserRegistrationCheck } from '../../hooks/useUserRegistrationCheck'
 import toast from 'react-hot-toast'
+import { clientLogger } from '../../lib/client-logger'
 
 // Infer router outputs to avoid deep type recursion
 type RouterOutputs = inferRouterOutputs<AppRouter>
@@ -45,20 +46,26 @@ function TasksPageContent() {
   
   // Use preferred languages from profile, or fall back to selectedLanguage filter
   // If user has preferred languages, use them; otherwise show all tasks
-  const preferredLanguages = userProfile?.preferredLanguages || []
+  const preferredLanguages = useMemo(() => userProfile?.preferredLanguages || [], [userProfile?.preferredLanguages])
   const primaryLanguage = userProfile?.primaryLanguage
   
+  // Memoize languagesToFilter to prevent unnecessary re-renders
   // If user has at least one preferred language, use those languages
   // If user has only primaryLanguage but no preferredLanguages, use primaryLanguage
   // Otherwise, if user manually selected a language, use that
   // If nothing is selected, show all tasks (undefined = all)
-  const languagesToFilter = preferredLanguages.length > 0 
-    ? preferredLanguages 
-    : primaryLanguage
-      ? [primaryLanguage]
-      : selectedLanguage 
-        ? [selectedLanguage] 
-        : undefined // undefined means show all languages
+  const languagesToFilter = useMemo(() => {
+    if (preferredLanguages.length > 0) {
+      return preferredLanguages
+    }
+    if (primaryLanguage) {
+      return [primaryLanguage]
+    }
+    if (selectedLanguage) {
+      return [selectedLanguage]
+    }
+    return undefined // undefined means show all languages
+  }, [preferredLanguages, primaryLanguage, selectedLanguage])
   
   const { data: allTasks, isLoading, error: tasksError } = trpc.task.getTasks.useQuery(
     {
@@ -72,10 +79,10 @@ function TasksPageContent() {
     }
   )
   
-  // Debug: Log tasks data to help diagnose issues
+  // Debug: Log tasks data to help diagnose issues (only in development)
   useEffect(() => {
-    if (isSignedIn && !isLoading) {
-      console.log('Tasks query result:', {
+    if (isSignedIn && !isLoading && process.env.NODE_ENV === 'development') {
+      clientLogger.debug('Tasks query result:', {
         allTasksCount: allTasks?.length || 0,
         languagesToFilter: languagesToFilter || 'ALL (undefined)',
         selectedDifficulty: selectedDifficulty || 'ALL',
@@ -86,7 +93,8 @@ function TasksPageContent() {
         errorMessage: tasksError?.message,
       })
     }
-  }, [allTasks, isLoading, isSignedIn, languagesToFilter, selectedDifficulty, preferredLanguages, primaryLanguage, selectedLanguage, tasksError])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allTasks?.length, isLoading, isSignedIn, languagesToFilter, selectedDifficulty, preferredLanguages.length, primaryLanguage, selectedLanguage, tasksError])
   
   // Limit tasks based on number of selected languages:
   // - 1 language: 3 tasks
@@ -148,27 +156,24 @@ function TasksPageContent() {
   const createSessionMutation = trpc.chat.createSession.useMutation()
   const [startingTaskId, setStartingTaskId] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.push('/')
-      return
-    }
-    
-    // Redirect blocked users to blocked page
-    if (isLoaded && isSignedIn && isBlocked) {
-      router.replace('/blocked')
-    }
-  }, [isLoaded, isSignedIn, isBlocked, router])
+  // Helper functions - must be defined before early returns (React Hooks rules)
+  const getTaskStatus = useCallback((task: TaskWithProgress) => {
+    const progress = task.userProgress?.[0]
+    return progress?.status || 'not_started'
+  }, [])
 
-  if (!isLoaded || isLoading || (isSignedIn && isCheckingBlocked) || (isSignedIn && isBlocked) || isCheckingUserExists) {
-    return <LoadingSpinner />
-  }
+  const isTaskCompleted = useCallback((task: TaskWithProgress) => {
+    return getTaskStatus(task) === 'completed'
+  }, [getTaskStatus])
 
-  if (!isSignedIn) {
-    return null
-  }
+  const isTaskInProgress = useCallback((task: TaskWithProgress) => {
+    return getTaskStatus(task) === 'in_progress'
+  }, [getTaskStatus])
 
-  const handleStartTask = async (task: TaskWithProgress) => {
+  // Note: handleStartTask is kept for potential future use
+  // Currently, "Start Task" button navigates to /task/[taskId] page
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleStartTask = useCallback(async (task: TaskWithProgress) => {
     // Prevent multiple clicks
     if (startingTaskId === task.id) {
       return
@@ -200,7 +205,7 @@ function TasksPageContent() {
           }
         } catch (error) {
           // If we can't check messages, assume session is empty and reset
-          console.warn('Could not check session messages, resetting task:', error)
+          clientLogger.warn('Could not check session messages, resetting task:', error)
           await updateProgressMutation.mutateAsync({
             taskId: task.id,
             status: 'not_started',
@@ -237,13 +242,13 @@ function TasksPageContent() {
       // taskId is needed for auto-sending the task description message
       router.push(`/chat?sessionId=${session.id}&taskId=${task.id}`)
     } catch (error) {
-      console.error('Error starting task:', error)
+      clientLogger.error('Error starting task:', error)
       toast.error('Error starting task. Please try again.')
       setStartingTaskId(null)
     }
-  }
+  }, [utils, updateProgressMutation, createSessionMutation, router, startingTaskId])
 
-  const handleCompleteTask = async (taskId: string) => {
+  const handleCompleteTask = useCallback(async (taskId: string) => {
     try {
       await completeTaskMutation.mutateAsync({ taskId })
       // Invalidate queries to refresh UI in Tasks page and Stats
@@ -252,12 +257,12 @@ function TasksPageContent() {
       await utils.stats.getUserStats.invalidate()
       toast.success('Task marked as completed! 🎉')
     } catch (error) {
-      console.error('Error completing task:', error)
+      clientLogger.error('Error completing task:', error)
       toast.error('Error completing task. Please try again.')
     }
-  }
+  }, [completeTaskMutation, utils])
 
-  const handleRestartTask = async (task: TaskWithProgress) => {
+  const handleRestartTask = useCallback(async (task: TaskWithProgress) => {
     if (!confirm('Are you sure you want to restart this task? Your previous progress will be reset.')) {
       return
     }
@@ -274,22 +279,30 @@ function TasksPageContent() {
       utils.task.getTasks.invalidate()
       toast.success('Task restarted! You can now start it again.')
     } catch (error) {
-      console.error('Error restarting task:', error)
+      clientLogger.error('Error restarting task:', error)
       toast.error('Failed to restart task. Please try again.')
     }
+  }, [updateProgressMutation, utils])
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push('/')
+      return
+    }
+    
+    // Redirect blocked users to blocked page
+    if (isLoaded && isSignedIn && isBlocked) {
+      router.replace('/blocked')
+    }
+  }, [isLoaded, isSignedIn, isBlocked, router])
+
+  // Early returns must come after all hooks
+  if (!isLoaded || isLoading || (isSignedIn && isCheckingBlocked) || (isSignedIn && isBlocked) || isCheckingUserExists) {
+    return <LoadingSpinner />
   }
 
-  const getTaskStatus = (task: TaskWithProgress) => {
-    const progress = task.userProgress?.[0]
-    return progress?.status || 'not_started'
-  }
-
-  const isTaskCompleted = (task: TaskWithProgress) => {
-    return getTaskStatus(task) === 'completed'
-  }
-
-  const isTaskInProgress = (task: TaskWithProgress) => {
-    return getTaskStatus(task) === 'in_progress'
+  if (!isSignedIn) {
+    return null
   }
 
   return (

@@ -98,7 +98,8 @@ export const appRouter = router({
       .query(async ({ ctx }) => {
         const { user } = ctx
         
-        // OPTIMIZATION: Only select needed fields and limit message data
+        // OPTIMIZATION: Only select needed fields - removed messages to reduce data transfer
+        // Messages are loaded separately when needed via getMessages
         const sessions = await db.chatSession.findMany({
           where: { userId: user.id },
           orderBy: { updatedAt: 'desc' },
@@ -107,16 +108,7 @@ export const appRouter = router({
             title: true,
             createdAt: true,
             updatedAt: true,
-            messages: {
-              orderBy: { timestamp: 'asc' },
-              take: 1,
-              select: {
-                id: true,
-                role: true,
-                content: true,
-                timestamp: true,
-              },
-            },
+            // Removed messages - load separately to reduce query size
           },
         })
 
@@ -2851,6 +2843,19 @@ export const appRouter = router({
         const { user } = ctx
         const { taskId } = input
 
+        // Rate limiting: 30 completions per minute per user
+        const rateLimitResult = await rateLimit(`${user.id}:completeTask`, 30, 60000)
+        if (!rateLimitResult.success) {
+          logger.warn('Rate limit exceeded for completeTask', user.id, { 
+            remaining: rateLimitResult.remaining,
+            resetTime: rateLimitResult.resetTime 
+          })
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: `Rate limit exceeded. Try again in ${Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)} seconds.`
+          })
+        }
+
         // Verify task exists
         const task = await db.programmingTask.findUnique({
           where: { id: taskId },
@@ -3040,6 +3045,19 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const { user } = ctx
         const { taskId, status, attempts, chatSessionId } = input
+
+        // Rate limiting: 50 updates per minute per user
+        const rateLimitResult = await rateLimit(`${user.id}:updateTaskProgress`, 50, 60000)
+        if (!rateLimitResult.success) {
+          logger.warn('Rate limit exceeded for updateTaskProgress', user.id, { 
+            remaining: rateLimitResult.remaining,
+            resetTime: rateLimitResult.resetTime 
+          })
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: `Rate limit exceeded. Try again in ${Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)} seconds.`
+          })
+        }
 
         // Upsert task progress
         const progress = await db.userTaskProgress.upsert({

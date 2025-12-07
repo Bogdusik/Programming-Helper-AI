@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import TaskDescription from './TaskDescription'
 import type { TaskExample, TestResult } from '../lib/task-types'
+import { clientLogger } from '../lib/client-logger'
 
 interface TaskCodeEditorProps {
   title: string
@@ -91,7 +92,7 @@ export default function TaskCodeEditor({
       const results = await onRunTests(value)
       setTestResults(results)
     } catch (error) {
-      console.error('Error running tests:', error)
+      clientLogger.error('Error running tests:', error)
       setTestResults({
         passed: 0,
         failed: 1,

@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import Logo from './Logo'
 import { trpc } from '@/lib/trpc-client'
 import { useBlockedStatus } from '../hooks/useBlockedStatus'
+import { clientLogger } from '../lib/client-logger'
 
 const NAV_LINKS = [
   { name: 'Chat', href: '/chat' },
@@ -35,7 +36,7 @@ export default function Navbar() {
   // Handle errors - don't log UNAUTHORIZED errors as they're expected for unregistered users
   useEffect(() => {
     if (roleError && roleError.data?.code !== 'UNAUTHORIZED') {
-      console.error('Error fetching user role:', roleError)
+      clientLogger.error('Error fetching user role:', roleError)
     }
   }, [roleError])
   
