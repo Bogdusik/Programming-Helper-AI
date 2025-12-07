@@ -1,6 +1,7 @@
 import { useUser } from '@clerk/nextjs'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { clientLogger } from '../lib/client-logger'
 
 // Simple in-memory cache to avoid duplicate requests
 const blockStatusCache = new Map<string, { isBlocked: boolean; timestamp: number }>()
@@ -123,7 +124,7 @@ export function useBlockedStatus(options: {
         if (error instanceof Error && error.name === 'AbortError') {
           throw error
         }
-        console.error('Error checking block status:', error)
+        clientLogger.error('Error checking block status:', error)
         return false
       } finally {
         activeRequest = null

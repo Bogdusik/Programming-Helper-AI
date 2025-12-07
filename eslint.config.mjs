@@ -25,8 +25,9 @@ const eslintConfig = [
   },
   {
     rules: {
-      // Prevent console.log in production code (allow console.error and console.warn)
-      "no-console": ["warn", { allow: ["warn", "error"] }],
+      // Prevent console.* in production code - use logger instead
+      // Allow in test files and scripts (handled via overrides if needed)
+      "no-console": "error",
       // Enforce consistent imports
       "no-unused-vars": "off", // TypeScript handles this
       "@typescript-eslint/no-unused-vars": [
