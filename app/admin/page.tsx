@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import Navbar from '@/components/Navbar'
 import { trpc } from '@/lib/trpc-client'
 import type { AdminTask } from '@/lib/trpc-types'
+import { clientLogger } from '@/lib/client-logger'
 
 export default function AdminPage() {
   const { isSignedIn, isLoaded, user } = useUser()
@@ -1939,7 +1940,7 @@ function ExportModal({ isOpen, onClose, format, onFormatChange }: {
         onClose()
       }
     } catch (error) {
-      console.error('Export error:', error)
+      clientLogger.error('Export error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to export data. Please try again.'
       toast.error(errorMessage)
     } finally {

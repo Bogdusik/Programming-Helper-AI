@@ -5,6 +5,8 @@ import toast from 'react-hot-toast'
 import Message from './Message'
 import { trpc } from '../lib/trpc-client'
 import type { TaskProgress } from '../lib/trpc-types'
+import { clientLogger } from '../lib/client-logger'
+import { getErrorMessage, requiresRefresh, isClerkNotFoundError } from '../lib/error-handler'
 
 // Scroll animation constants
 const SCROLL_ANIMATION_DURATION_MS = 300 // Animation duration in milliseconds
@@ -337,41 +339,10 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
       // Scroll to bottom after new message
       setTimeout(() => scrollToBottom(), 100)
     } catch (error) {
-      console.error('Error sending message:', error)
+      clientLogger.error('Error sending message:', error)
       
-      // Check if it's a tRPC error with specific code
-      let errorMessage = 'Failed to send message. Please try again.'
-      let shouldShowRefreshHint = false
-      
-      if (error && typeof error === 'object') {
-        // tRPC errors have a specific structure
-        const trpcError = error as { 
-          data?: { code?: string; httpStatus?: number }; 
-          message?: string;
-          shape?: { message?: string; data?: { code?: string } }
-        }
-        
-        // Check error.data.code (tRPC error structure)
-        if (trpcError.data?.code === 'PRECONDITION_FAILED') {
-          errorMessage = trpcError.message || 'Please complete onboarding before sending messages.'
-          shouldShowRefreshHint = true
-        } else if (trpcError.shape?.data?.code === 'PRECONDITION_FAILED') {
-          errorMessage = trpcError.shape.message || 'Please complete onboarding before sending messages.'
-          shouldShowRefreshHint = true
-        } else if (trpcError.message) {
-          errorMessage = trpcError.message
-          // Check if message mentions onboarding
-          if (errorMessage.includes('complete your profile') || errorMessage.includes('complete the knowledge assessment') || errorMessage.includes('onboarding')) {
-            shouldShowRefreshHint = true
-          }
-        }
-      } else if (error instanceof Error) {
-        errorMessage = error.message
-        // Check if error is about onboarding not being complete
-        if (errorMessage.includes('complete your profile') || errorMessage.includes('complete the knowledge assessment') || errorMessage.includes('onboarding')) {
-          shouldShowRefreshHint = true
-        }
-      }
+      const errorMessage = getErrorMessage(error)
+      const shouldShowRefreshHint = requiresRefresh(error)
       
       // Show error with refresh hint if needed
       if (shouldShowRefreshHint) {

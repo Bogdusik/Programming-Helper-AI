@@ -1,6 +1,7 @@
 import { useUser } from '@clerk/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { clientLogger } from '../lib/client-logger'
 
 /**
  * Hook to check if user was registered through sign-up
@@ -37,7 +38,7 @@ export function useUserRegistrationCheck() {
             newUrl.searchParams.delete('fromSignUp')
             router.replace(newUrl.pathname + newUrl.search)
           } catch (error) {
-            console.error('Error creating user after sign-up:', error)
+            clientLogger.error('Error creating user after sign-up:', error)
           }
           setIsCheckingUserExists(false)
           return
@@ -55,7 +56,7 @@ export function useUserRegistrationCheck() {
           return
         }
       } catch (error) {
-        console.error('Error checking user existence:', error)
+        clientLogger.error('Error checking user existence:', error)
         // On error, allow access to prevent blocking legitimate users
       } finally {
         setIsCheckingUserExists(false)
@@ -63,6 +64,8 @@ export function useUserRegistrationCheck() {
     }
 
     checkUserRegistration()
+    // Note: router, searchParams, hasCheckedUserExists, isCheckingUserExists are intentionally excluded
+    // to prevent infinite loops and ensure the check runs only once
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, isSignedIn, user?.id])
 
