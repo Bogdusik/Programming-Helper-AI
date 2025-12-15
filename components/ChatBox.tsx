@@ -208,33 +208,49 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
   )
 
   // OPTIMIZATION: Memoize scroll function to avoid recreating on every render
-  const scrollToBottom = useCallback(() => {
-    if (isUserAtBottom && messagesContainerRef.current) {
-      const container = messagesContainerRef.current
-      const targetScrollTop = container.scrollHeight
-      
-      // Smooth scroll animation
-      const startScrollTop = container.scrollTop
-      const distance = targetScrollTop - startScrollTop
-      let startTime: number | null = null
+  // By default, respects isUserAtBottom (не мешаем читать старые сообщения),
+  // но при force: true всегда скроллим вниз (для кнопки "Scroll to bottom").
+  const scrollToBottom = useCallback(
+    (options?: { force?: boolean }) => {
+      const force = options?.force ?? false
 
-      const animateScroll = (currentTime: number) => {
-        if (startTime === null) startTime = currentTime
-        const elapsed = currentTime - startTime
-        const progress = Math.min(elapsed / SCROLL_ANIMATION_DURATION_MS, 1)
-        
-        // Easing function for smooth animation
-        const easeOutCubic = 1 - Math.pow(1 - progress, 3)
-        container.scrollTop = startScrollTop + (distance * easeOutCubic)
-        
-        if (progress < 1) {
-          requestAnimationFrame(animateScroll)
-        }
+      // Для программного скролла используем невидимый anchor-элемент внизу
+      if (!force && !isUserAtBottom) return
+
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end',
+        })
+        return
       }
-      
-      requestAnimationFrame(animateScroll)
-    }
-  }, [isUserAtBottom])
+
+      if (messagesContainerRef.current) {
+        const container = messagesContainerRef.current
+        const targetScrollTop = container.scrollHeight
+
+        const startScrollTop = container.scrollTop
+        const distance = targetScrollTop - startScrollTop
+        let startTime: number | null = null
+
+        const animateScroll = (currentTime: number) => {
+          if (startTime === null) startTime = currentTime
+          const elapsed = currentTime - startTime
+          const progress = Math.min(elapsed / SCROLL_ANIMATION_DURATION_MS, 1)
+
+          const easeOutCubic = 1 - Math.pow(1 - progress, 3)
+          container.scrollTop = startScrollTop + distance * easeOutCubic
+
+          if (progress < 1) {
+            requestAnimationFrame(animateScroll)
+          }
+        }
+
+        requestAnimationFrame(animateScroll)
+      }
+    },
+    [isUserAtBottom],
+  )
 
   // OPTIMIZATION: Memoize scroll handler
   const handleScroll = useCallback(() => {
@@ -262,7 +278,7 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, taskId])
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change (если пользователь уже внизу)
   useEffect(() => {
     scrollToBottom()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -459,8 +475,10 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
           <div className="flex justify-center">
             <button
               onClick={() => {
+                // Сначала скроллим принудительно к самому последнему сообщению,
+                // затем помечаем, что пользователь снова "внизу".
+                scrollToBottom({ force: true })
                 setIsUserAtBottom(true)
-                scrollToBottom()
               }}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 shadow-lg"
             >
