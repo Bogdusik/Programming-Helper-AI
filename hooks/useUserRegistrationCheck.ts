@@ -1,5 +1,5 @@
 import { useUser } from '@clerk/nextjs'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { clientLogger } from '../lib/client-logger'
 
@@ -11,7 +11,6 @@ import { clientLogger } from '../lib/client-logger'
 export function useUserRegistrationCheck() {
   const { isSignedIn, isLoaded, user } = useUser()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [isCheckingUserExists, setIsCheckingUserExists] = useState(false)
   const [hasCheckedUserExists, setHasCheckedUserExists] = useState(false)
 
@@ -27,16 +26,22 @@ export function useUserRegistrationCheck() {
 
       try {
         // Check if user came from sign-up page
-        const fromSignUp = searchParams.get('fromSignUp') === 'true'
+        const fromSignUp =
+          typeof window !== 'undefined' &&
+          new URLSearchParams(window.location.search).get('fromSignUp') === 'true'
 
         // If user came from sign-up, create them in database
         if (fromSignUp) {
           try {
             await fetch('/api/create-user')
             // Remove the parameter from URL
-            const newUrl = new URL(window.location.href)
-            newUrl.searchParams.delete('fromSignUp')
-            router.replace(newUrl.pathname + newUrl.search)
+            if (typeof window !== 'undefined') {
+              const newUrl = new URL(window.location.href)
+              newUrl.searchParams.delete('fromSignUp')
+              const nextUrl = newUrl.pathname + newUrl.search
+              window.history.replaceState(null, '', nextUrl)
+              router.replace(nextUrl)
+            }
           } catch (error) {
             clientLogger.error('Error creating user after sign-up:', error)
           }
@@ -64,7 +69,7 @@ export function useUserRegistrationCheck() {
     }
 
     checkUserRegistration()
-    // Note: router, searchParams, hasCheckedUserExists, isCheckingUserExists are intentionally excluded
+    // Note: router, hasCheckedUserExists, isCheckingUserExists are intentionally excluded
     // to prevent infinite loops and ensure the check runs only once
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, isSignedIn, user?.id])
