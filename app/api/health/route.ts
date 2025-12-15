@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { env } from '@/lib/env'
 
 /**
  * Health check endpoint
@@ -22,7 +21,7 @@ export async function GET() {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         services,
-        environment: env.NODE_ENV,
+        environment: process.env.NODE_ENV ?? 'development',
       },
       { status: 200 }
     )
