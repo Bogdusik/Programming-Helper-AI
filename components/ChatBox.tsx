@@ -281,8 +281,7 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
   // Auto-scroll to bottom when messages change (если пользователь уже внизу)
   useEffect(() => {
     scrollToBottom()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displayMessages]) // scrollToBottom is stable, doesn't need to be in deps
+  }, [displayMessages, scrollToBottom])
 
   // Optimized: Only refetch when window regains focus (user comes back to tab)
   // This reduces unnecessary API calls while maintaining data freshness

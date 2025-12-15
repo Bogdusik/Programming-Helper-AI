@@ -56,7 +56,8 @@ export async function generateResponse(
 
   try {
     // Validate that the message is programming-related
-    if (!isProgrammingRelated(message)) {
+    // Pass conversation history to allow continuation questions in programming context
+    if (!isProgrammingRelated(message, conversationHistory)) {
       return getRejectionMessage()
     }
     
