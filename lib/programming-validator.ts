@@ -66,6 +66,14 @@ const PROGRAMMING_KEYWORDS = [
   'learn', 'tutorial', 'example', 'sample', 'documentation', 'docs',
   'guide', 'how to', 'explain', 'understand', 'concept', 'principle',
   'best practice', 'convention', 'standard', 'style guide',
+  
+  // Russian keywords for programming-related questions
+  'совет', 'советы', 'рекомендация', 'рекомендации', 'рекомендовать', 'рекомендуй',
+  'улучшить', 'улучшение', 'навыки', 'навык', 'скилл', 'скиллы',
+  'coding challenge', 'coding challenges', 'challenge', 'challenges',
+  'помощь', 'помоги', 'помочь', 'подскажи', 'подсказка', 'подсказки',
+  'вопрос', 'вопросы', 'задача', 'задачи', 'решение', 'решения',
+  'что еще', 'какие еще', 'еще', 'дополнительно', 'дополнительные',
 ]
 
 const NON_PROGRAMMING_KEYWORDS = [
@@ -90,8 +98,14 @@ const NON_PROGRAMMING_KEYWORDS = [
 
 /**
  * Checks if a message is related to programming
+ * @param message - The message to check
+ * @param conversationHistory - Optional conversation history to check context
+ * @returns true if the message is programming-related
  */
-export function isProgrammingRelated(message: string): boolean {
+export function isProgrammingRelated(
+  message: string,
+  conversationHistory?: Array<{ role: 'user' | 'assistant', content: string }>
+): boolean {
   const lowerMessage = message.toLowerCase().trim()
   
   // Empty or very short messages are not programming related
@@ -111,11 +125,25 @@ export function isProgrammingRelated(message: string): boolean {
       lowerMessage.includes(keyword)
     )
     if (!hasProgrammingContext) {
+      // If no programming context in current message, check conversation history
+      if (conversationHistory && conversationHistory.length > 0) {
+        const historyText = conversationHistory
+          .map(msg => msg.content)
+          .join(' ')
+          .toLowerCase()
+        const hasHistoryProgrammingContext = PROGRAMMING_KEYWORDS.some(keyword =>
+          historyText.includes(keyword)
+        )
+        if (hasHistoryProgrammingContext) {
+          // If conversation history has programming context, allow continuation questions
+          return true
+        }
+      }
       return false
     }
   }
   
-  // Check for programming keywords
+  // Check for programming keywords in current message
   const hasProgrammingKeyword = PROGRAMMING_KEYWORDS.some(keyword =>
     lowerMessage.includes(keyword)
   )
@@ -136,7 +164,44 @@ export function isProgrammingRelated(message: string): boolean {
   
   const hasCodePattern = codePatterns.some(pattern => pattern.test(lowerMessage))
   
-  return hasCodePattern
+  if (hasCodePattern) {
+    return true
+  }
+  
+  // If current message doesn't have explicit programming keywords but we have conversation history,
+  // check if the conversation is about programming (continuation questions like "what else?", "more tips?", etc.)
+  if (conversationHistory && conversationHistory.length > 0) {
+    const historyText = conversationHistory
+      .map(msg => msg.content.toLowerCase())
+      .join(' ')
+    
+    // Check if any message in history contains programming keywords
+    const hasHistoryProgrammingKeyword = PROGRAMMING_KEYWORDS.some(keyword =>
+      historyText.includes(keyword)
+    )
+    
+    if (hasHistoryProgrammingKeyword) {
+      // Check if current message is a continuation question (asking for more, additional tips, etc.)
+      const continuationKeywords = [
+        'what else', 'what more', 'more', 'another', 'other', 'additional',
+        'еще', 'какие еще', 'что еще', 'дополнительно', 'другие', 'еще один',
+        'совет', 'советы', 'рекомендация', 'рекомендации', 'рекомендовать', 'рекомендуй',
+        'tips', 'tip', 'advice', 'suggest', 'suggestion', 'recommend', 'recommendation',
+        'помоги', 'помощь', 'подскажи', 'подсказка', 'подсказки',
+      ]
+      
+      const isContinuationQuestion = continuationKeywords.some(keyword =>
+        lowerMessage.includes(keyword)
+      )
+      
+      if (isContinuationQuestion) {
+        // This is a continuation of a programming conversation
+        return true
+      }
+    }
+  }
+  
+  return false
 }
 
 /**
