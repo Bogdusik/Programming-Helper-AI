@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { escapeHtml } from '@/lib/utils'
 
 interface MessageProps {
   role: 'user' | 'assistant'
@@ -41,9 +42,9 @@ function renderMessageContent(content: string, isUser: boolean) {
     }
   }
   
-  // If no code blocks found, return original content
+  // If no code blocks found, return original content (escaped for security)
   if (parts.length === 0) {
-    return <p className="text-sm leading-relaxed whitespace-pre-wrap">{content}</p>
+    return <p className="text-sm leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: escapeHtml(content) }} />
   }
   
   // Render parts
@@ -70,10 +71,13 @@ function renderMessageContent(content: string, isUser: boolean) {
             </div>
           )
         } else {
+          // Escape HTML in text content to prevent XSS
           return (
-            <p key={index} className="text-sm leading-relaxed whitespace-pre-wrap">
-              {part.content}
-            </p>
+            <p 
+              key={index} 
+              className="text-sm leading-relaxed whitespace-pre-wrap"
+              dangerouslySetInnerHTML={{ __html: escapeHtml(part.content) }}
+            />
           )
         }
       })}
