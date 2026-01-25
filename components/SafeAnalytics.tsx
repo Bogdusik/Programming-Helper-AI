@@ -12,10 +12,11 @@ export default function SafeAnalytics() {
   useEffect(() => {
     // Suppress fetch errors from Vercel Analytics
     const originalFetch = window.fetch;
+    // eslint-disable-next-line no-console
     const originalConsoleError = console.error;
 
     // Override fetch to silently handle Vercel Analytics errors
-    window.fetch = async (...args) => {
+    window.fetch = async (...args: Parameters<typeof fetch>) => {
       try {
         const response = await originalFetch(...args);
         // Check if response failed and is from Vercel Analytics
@@ -32,7 +33,7 @@ export default function SafeAnalytics() {
           }
         }
         return response;
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Check if this is a Vercel Analytics request
         const url = args[0]?.toString() || '';
         if (
@@ -49,6 +50,7 @@ export default function SafeAnalytics() {
     };
 
     // Override console.error to filter out Performance errors
+    // eslint-disable-next-line no-console, @typescript-eslint/no-explicit-any
     console.error = (...args: any[]) => {
       const message = args[0]?.toString() || '';
       if (
@@ -83,6 +85,7 @@ export default function SafeAnalytics() {
     // Cleanup on unmount
     return () => {
       window.fetch = originalFetch;
+      // eslint-disable-next-line no-console
       console.error = originalConsoleError;
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
