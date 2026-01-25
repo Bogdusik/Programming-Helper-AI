@@ -123,4 +123,4 @@ Programming-Helper-AI/
 - **Research Ethics**: Implemented GDPR-compliant data collection with anonymous user identification and research consent mechanisms
 - **Testing Strategies**: Wrote comprehensive tests for React components, API endpoints, and business logic using Jest and React Testing Library
 
-Fork it, use it, improve it — open to PRs!
+Fork it, use it, improve it - open to PRs!
