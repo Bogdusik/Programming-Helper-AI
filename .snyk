@@ -1,0 +1,15 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+ignore:
+  # @trpc/server: fixed by upgrading to 11.8.0 (see package.json)
+  # next: fix requires next@16.1.5; @clerk/nextjs does not support Next 16 yet.
+  # Re-evaluate when Clerk adds Next 16 support. See README "Snyk PR #1" section.
+  SNYK-JS-NEXT-15104645:
+    - '*':
+        reason: 'Fix requires Next 16.1.5; @clerk/nextjs does not support Next 16 yet. Re-evaluate when Clerk adds support.'
+        expires: '2026-07-01T00:00:00.000Z'
+  SNYK-JS-NEXT-15105315:
+    - '*':
+        reason: 'Fix requires Next 16.1.5; @clerk/nextjs does not support Next 16 yet. Re-evaluate when Clerk adds support.'
+        expires: '2026-07-01T00:00:00.000Z'
+patch: {}
