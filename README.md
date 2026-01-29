@@ -66,6 +66,10 @@ An AI-powered programming assistant designed for academic research on AI-assiste
 
 > **Important**: Never hardcode secrets. Always use `.env.local` file for sensitive data.
 
+### Snyk PR #1 (Next.js 16 upgrade)
+
+The automated Snyk PR that upgrades Next.js to 16.x **should not be merged** until `@clerk/nextjs` supports Next.js 16. Merging it causes Vercel deployment to fail because Clerk is not yet compatible with Next 16. The project stays on Next.js 15.x for now; main branch builds and deploys successfully.
+
 ## Project Structure
 
 ```
