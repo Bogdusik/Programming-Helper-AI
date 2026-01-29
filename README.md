@@ -66,9 +66,10 @@ An AI-powered programming assistant designed for academic research on AI-assiste
 
 > **Important**: Never hardcode secrets. Always use `.env.local` file for sensitive data.
 
-### Snyk PR #1 (Next.js 16 upgrade)
+### Snyk / Security
 
-The automated Snyk PR that upgrades Next.js to 16.x **should not be merged** until `@clerk/nextjs` supports Next.js 16. Merging it causes Vercel deployment to fail because Clerk is not yet compatible with Next 16. The project stays on Next.js 15.x for now; main branch builds and deploys successfully.
+- **@trpc/server** and all `@trpc/*` packages are kept at **11.8.0+** to fix the Prototype Pollution vulnerability (Snyk).
+- **Next.js 16** upgrade from Snyk **should not be merged** until `@clerk/nextjs` supports Next.js 16 (Clerk is not yet compatible; build would fail). The project stays on Next.js 15.x. The Next.js “Allocation of Resources” finding is ignored in `.snyk` with an expiry; re-scan or remove the ignore once Clerk supports Next 16.
 
 ## Project Structure
 
