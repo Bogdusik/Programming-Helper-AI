@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom'
 
+// JSDOM does not implement scrollIntoView (or it's not callable) - mock for ChatBox and other components
+if (typeof Element !== 'undefined') {
+  Element.prototype.scrollIntoView = jest.fn()
+}
+
 // Mock environment variables
 process.env.NODE_ENV = 'test'
 process.env.OPENAI_API_KEY = 'test-key'
