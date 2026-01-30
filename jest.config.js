@@ -13,9 +13,11 @@ const customJestConfig = {
     '^@/(.*)$': '<rootDir>/$1',
   },
   testPathIgnorePatterns: [
-    '<rootDir>/.next/', 
+    '<rootDir>/.next/',
     '<rootDir>/node_modules/',
-    // Setup files are not test files, so they won't be run as tests anyway
+    '<rootDir>/__tests__/setup/mocks.ts',
+    '<rootDir>/__tests__/setup/prisma-mocks.ts',
+    '<rootDir>/__tests__/setup/test-utils.tsx',
   ],
   transformIgnorePatterns: [
     'node_modules/(?!(@clerk|@trpc|@tanstack)/)',
