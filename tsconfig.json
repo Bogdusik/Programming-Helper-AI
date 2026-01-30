@@ -26,8 +26,6 @@
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": [
     "node_modules",
-    // Note: __tests__ is included to allow type checking of test utilities
-    // Test files (*.test.ts, *.test.tsx) are excluded to avoid type checking them during build
     "**/*.test.ts",
     "**/*.test.tsx"
   ]
