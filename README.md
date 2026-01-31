@@ -89,10 +89,12 @@ Programming-Helper-AI/
 │   ├── Navbar.tsx              # Navigation bar
 │   └── [other components]
 │
+├── docs/                        # Documentation
+│   ├── API_DOCUMENTATION.md    # REST & tRPC API, usage
+│   └── RESEARCH_ETHICS.md     # Research ethics, GDPR
+│
 ├── lib/                         # Core Libraries
-│   ├── trpc/                   # tRPC setup
-│   │   ├── router.ts           # tRPC router
-│   │   └── procedures/        # tRPC procedures
+│   ├── trpc.ts                 # tRPC router & procedures
 │   ├── openai.ts               # OpenAI integration
 │   ├── db.ts                   # Prisma client
 │   ├── auth.ts                 # Authentication utilities
@@ -113,11 +115,15 @@ Programming-Helper-AI/
 ├── scripts/                     # Utility Scripts
 │   └── [script files]
 │
-└── [config files]              # Configuration files
+├── postman/                     # Postman collections
+│
+└── [config files]              # Root config (next, ts, jest, etc.)
     ├── next.config.ts
     ├── tsconfig.json
     └── jest.config.js
 ```
+
+**Documentation:** API and research ethics — see [docs/](docs/).
 
 ## What I Learned
 
