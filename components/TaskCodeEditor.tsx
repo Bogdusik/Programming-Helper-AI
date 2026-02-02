@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import TaskDescription from './TaskDescription'
 import type { TaskExample, TestResult } from '../lib/task-types'
@@ -92,14 +92,26 @@ export default function TaskCodeEditor({
     }
   }, [isResizing, handleMouseMove, handleMouseUp])
 
+  // Show starter code in editor when value is still empty (e.g. before parent's useEffect runs)
+  const displayValue = value || starterCode || ''
+
+  // Sync starter code to parent once on load when value is empty (fixes empty editor before useEffect runs)
+  const lastSyncedStarterRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (value === '' && starterCode && lastSyncedStarterRef.current !== starterCode) {
+      lastSyncedStarterRef.current = starterCode
+      onChange(starterCode)
+    }
+  }, [starterCode, value, onChange])
+
   const handleRunTests = async () => {
-    if (!onRunTests || !value.trim()) return
+    if (!onRunTests || !displayValue.trim()) return
     
     setIsRunningTests(true)
     setTestResults(null)
     
     try {
-      const results = await onRunTests(value)
+      const results = await onRunTests(displayValue)
       setTestResults(results)
     } catch (error) {
       clientLogger.error('Error running tests:', error)
@@ -161,7 +173,7 @@ export default function TaskCodeEditor({
             {onRunTests && (
               <button
                 onClick={handleRunTests}
-                disabled={!value.trim() || isRunningTests}
+                disabled={!displayValue.trim() || isRunningTests}
                 className="px-3 py-1 text-xs bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded transition-colors"
               >
                 {isRunningTests ? 'Running...' : 'Run Tests'}
@@ -173,7 +185,7 @@ export default function TaskCodeEditor({
           <MonacoEditor
             height="100%"
             language={/javascript/i.test(language) ? 'javascript' : language.toLowerCase()}
-            value={value}
+            value={displayValue}
             onChange={(val) => onChange(val ?? '')}
             theme="vs-dark"
             loading={null}
