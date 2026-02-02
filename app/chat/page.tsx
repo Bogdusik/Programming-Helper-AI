@@ -214,12 +214,16 @@ function ChatPageContent() {
           
           if (latestMessages && latestMessages.length === 0) {
             // Only send message if this is a new task start (both taskId and sessionId in URL, and no messages)
-            const taskMessage = `I want to work on this task:\n\n**${taskData.title}**\n\n${taskData.description}\n\nLanguage: ${taskData.language}\nDifficulty: ${taskData.difficulty}\n\nPlease help me solve this task.`
+            const hintsPart = (taskData as { hints?: string[] }).hints?.length
+              ? `\nHints for this task: ${(taskData as { hints?: string[] }).hints!.join('; ')}`
+              : ''
+            const taskMessage = `I'm working on the programming task **"${taskData.title}"** and need your help.\n\n**Task:** ${taskData.description}\n\nLanguage: ${taskData.language} | Difficulty: ${taskData.difficulty}${hintsPart}\n\nPlease guide me step by step. I will ask follow-up questions about this same task—always answer in the context of "${taskData.title}".`
             
-            // Use mutateAsync to avoid complex type inference in dependencies
+            // Use mutateAsync to avoid complex type inference in dependencies. Pass taskId so backend has task context for this first message.
             sendMessageMutation.mutateAsync({
               message: taskMessage,
               sessionId: currentSessionId,
+              taskId: taskId ?? undefined,
             }).then((result) => {
               // If a new session was created (session was missing), update currentSessionId
               if (result.sessionId && result.sessionId !== currentSessionId) {
