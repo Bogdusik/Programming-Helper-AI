@@ -8,11 +8,7 @@ import { clientLogger } from '../lib/client-logger'
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react').then((mod) => mod.Editor), {
   ssr: false,
-  loading: () => (
-    <div className="flex-1 flex items-center justify-center bg-gray-900/50 text-gray-400 text-sm">
-      Loading editor...
-    </div>
-  ),
+  loading: () => null,
 })
 
 interface TaskCodeEditorProps {
@@ -58,6 +54,13 @@ export default function TaskCodeEditor({
     results: TestResult[]
   } | null>(null)
   const [isRunningTests, setIsRunningTests] = useState(false)
+  const [monacoReadyWithValue, setMonacoReadyWithValue] = useState(false)
+  const displayValueRef = useRef('')
+  displayValueRef.current = value || starterCode || ''
+
+  useEffect(() => {
+    setMonacoReadyWithValue(false)
+  }, [title])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -181,42 +184,70 @@ export default function TaskCodeEditor({
             )}
           </div>
         )}
-        <div className="flex-1 min-h-0 w-full" style={{ minHeight: '200px' }}>
-          <MonacoEditor
-            key={title}
-            height="100%"
-            language={/javascript/i.test(language) ? 'javascript' : language.toLowerCase()}
-            value={displayValue}
-            onChange={(val) => onChange(val ?? '')}
-            onMount={(editor) => {
-              if (displayValue && editor.getValue() !== displayValue) {
-                editor.setValue(displayValue)
-              }
+        <div className="flex-1 min-h-0 w-full relative" style={{ minHeight: '200px' }}>
+          {/* Fallback: show code in textarea until Monaco has loaded and set value (guarantees code is always visible) */}
+          {!monacoReadyWithValue && (
+            <textarea
+              value={displayValue}
+              onChange={(e) => onChange(e.target.value)}
+              className="absolute inset-0 w-full h-full p-3 sm:p-4 border-0 resize-none focus:outline-none font-mono text-sm text-gray-200 bg-gray-900/50"
+              style={{
+                fontFamily: 'Monaco, "Courier New", monospace',
+                lineHeight: 1.5,
+                tabSize: 2,
+              }}
+              spellCheck={false}
+              data-testid="task-editor-fallback"
+            />
+          )}
+          {/* Monaco: mount always so it can load; visible only after value is set in onMount */}
+          <div
+            className="w-full h-full"
+            style={{
+              visibility: monacoReadyWithValue ? 'visible' : 'hidden',
+              position: monacoReadyWithValue ? 'relative' : 'absolute',
+              height: '100%',
+              minHeight: '200px',
             }}
-            theme="vs-dark"
-            loading={null}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14,
-              wordWrap: 'on',
-              padding: { top: 12, bottom: 12 },
-              suggest: {
-                showKeywords: true,
-                showSnippets: true,
-                showFunctions: true,
-                showVariables: true,
-                showMethods: true,
-                showClasses: true,
-              },
-              quickSuggestions: {
-                other: true,
-                comments: false,
-                strings: true,
-              },
-              tabSize: 2,
-              automaticLayout: true,
-            }}
-          />
+          >
+            <MonacoEditor
+              key={title}
+              height="100%"
+              language={/javascript/i.test(language) ? 'javascript' : language.toLowerCase()}
+              value={displayValue}
+              onChange={(val) => onChange(val ?? '')}
+              onMount={(editor) => {
+                const current = displayValueRef.current
+                if (current && editor.getValue() !== current) {
+                  editor.setValue(current)
+                }
+                setMonacoReadyWithValue(true)
+              }}
+              theme="vs-dark"
+              loading={null}
+              options={{
+                minimap: { enabled: false },
+                fontSize: 14,
+                wordWrap: 'on',
+                padding: { top: 12, bottom: 12 },
+                suggest: {
+                  showKeywords: true,
+                  showSnippets: true,
+                  showFunctions: true,
+                  showVariables: true,
+                  showMethods: true,
+                  showClasses: true,
+                },
+                quickSuggestions: {
+                  other: true,
+                  comments: false,
+                  strings: true,
+                },
+                tabSize: 2,
+                automaticLayout: true,
+              }}
+            />
+          </div>
         </div>
         {testResults && (
           <div className="border-t border-white/20 bg-gray-900/70 p-3 flex-shrink-0">
