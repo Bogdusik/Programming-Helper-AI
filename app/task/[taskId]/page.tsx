@@ -166,8 +166,8 @@ function TaskPageContent() {
           // Only reuse if session has messages (it's been used)
           if (sessionMessages && sessionMessages.length > 0) {
             sessionId = progress.chatSessionId
-            // Navigate without taskId to avoid re-initialization
-            router.push(`/chat?sessionId=${sessionId}`)
+            // Keep taskId in URL so chat has task context for every message
+            router.push(`/chat?sessionId=${sessionId}&taskId=${taskDataSimple.id}`)
             setIsCreatingSession(false)
             return
           }
