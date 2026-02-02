@@ -183,10 +183,16 @@ export default function TaskCodeEditor({
         )}
         <div className="flex-1 min-h-0 w-full" style={{ minHeight: '200px' }}>
           <MonacoEditor
+            key={title}
             height="100%"
             language={/javascript/i.test(language) ? 'javascript' : language.toLowerCase()}
             value={displayValue}
             onChange={(val) => onChange(val ?? '')}
+            onMount={(editor) => {
+              if (displayValue && editor.getValue() !== displayValue) {
+                editor.setValue(displayValue)
+              }
+            }}
             theme="vs-dark"
             loading={null}
             options={{
