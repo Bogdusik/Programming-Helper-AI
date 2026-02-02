@@ -1,9 +1,19 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import TaskDescription from './TaskDescription'
 import type { TaskExample, TestResult } from '../lib/task-types'
 import { clientLogger } from '../lib/client-logger'
+
+const MonacoEditor = dynamic(() => import('@monaco-editor/react').then((mod) => mod.Editor), {
+  ssr: false,
+  loading: () => (
+    <div className="flex-1 flex items-center justify-center bg-gray-900/50 text-gray-400 text-sm">
+      Loading editor...
+    </div>
+  ),
+})
 
 interface TaskCodeEditorProps {
   title: string
@@ -159,17 +169,37 @@ export default function TaskCodeEditor({
             )}
           </div>
         )}
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="flex-1 w-full p-3 sm:p-4 border-0 resize-none focus:outline-none min-h-0 font-mono text-sm text-gray-200 bg-gray-900/50"
-          style={{ 
-            fontFamily: 'Monaco, "Courier New", monospace',
-            lineHeight: '1.5',
-            tabSize: 2
-          }}
-        />
+        <div className="flex-1 min-h-0 w-full" style={{ minHeight: '200px' }}>
+          <MonacoEditor
+            height="100%"
+            language={/javascript/i.test(language) ? 'javascript' : language.toLowerCase()}
+            value={value}
+            onChange={(val) => onChange(val ?? '')}
+            theme="vs-dark"
+            loading={null}
+            options={{
+              minimap: { enabled: false },
+              fontSize: 14,
+              wordWrap: 'on',
+              padding: { top: 12, bottom: 12 },
+              suggest: {
+                showKeywords: true,
+                showSnippets: true,
+                showFunctions: true,
+                showVariables: true,
+                showMethods: true,
+                showClasses: true,
+              },
+              quickSuggestions: {
+                other: true,
+                comments: false,
+                strings: true,
+              },
+              tabSize: 2,
+              automaticLayout: true,
+            }}
+          />
+        </div>
         {testResults && (
           <div className="border-t border-white/20 bg-gray-900/70 p-3 flex-shrink-0">
             <div className="flex items-center justify-between mb-2">
