@@ -208,13 +208,13 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
   )
 
   // OPTIMIZATION: Memoize scroll function to avoid recreating on every render
-  // By default, respects isUserAtBottom (не мешаем читать старые сообщения),
-  // но при force: true всегда скроллим вниз (для кнопки "Scroll to bottom").
+  // By default, respects isUserAtBottom (don't interrupt reading old messages).
+  // With force: true always scroll to bottom (e.g. "Scroll to bottom" button).
   const scrollToBottom = useCallback(
     (options?: { force?: boolean }) => {
       const force = options?.force ?? false
 
-      // Для программного скролла используем невидимый anchor-элемент внизу
+      // Use invisible anchor at bottom for programmatic scroll
       if (!force && !isUserAtBottom) return
 
       if (messagesEndRef.current) {
@@ -278,7 +278,7 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, taskId])
 
-  // Auto-scroll to bottom when messages change (если пользователь уже внизу)
+  // Auto-scroll to bottom when messages change (if user is already at bottom)
   useEffect(() => {
     scrollToBottom()
   }, [displayMessages, scrollToBottom])
@@ -334,7 +334,8 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
     try {
       const result = await sendMessageMutation.mutateAsync({ 
         message: messageToSend,
-        sessionId 
+        sessionId,
+        taskId: effectiveTaskId ?? undefined
       })
       
       // If a new session was created, notify parent component
@@ -368,7 +369,7 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
       // Remove the optimistic message on error
       setOptimisticMessages(prev => prev.filter(msg => msg.id !== userMessage.id))
     }
-  }, [message, sendMessageMutation, sessionId, onSessionCreated, refetchMessages, scrollToBottom, isOnboardingComplete, userProfile?.profileCompleted, hasPreAssessment])
+  }, [message, sendMessageMutation, sessionId, effectiveTaskId, onSessionCreated, refetchMessages, scrollToBottom, isOnboardingComplete, userProfile?.profileCompleted, hasPreAssessment])
 
   return (
     <div className="flex flex-col h-full min-h-0" style={{ height: '100%', minHeight: 0, maxHeight: '100%' }}>

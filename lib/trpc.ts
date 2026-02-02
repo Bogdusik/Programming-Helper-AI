@@ -230,10 +230,11 @@ export const appRouter = router({
           .max(10000, "Message too long (max 10000 characters)")
           .regex(/^[\s\S]*$/, "Invalid characters in message")
           .transform((msg) => msg.trim()),
-        sessionId: z.string().optional()
+        sessionId: z.string().optional(),
+        taskId: z.string().optional()
       }))
       .mutation(async ({ input, ctx }) => {
-        const { message, sessionId } = input
+        const { message, sessionId, taskId: inputTaskId } = input
         const { user } = ctx
 
         // OPTIMIZATION: Check onboarding status in parallel with rate limiting
@@ -392,8 +393,8 @@ export const appRouter = router({
           ? detectedLanguage 
           : (userData?.primaryLanguage || 'general')
 
-        // Build task context if available
-        const taskContext: { title: string; description: string; language: string; difficulty: string; hints?: string[] } | null = 
+        // Build task context: first from session-linked progress, then from explicit taskId (e.g. "Continue in Chat")
+        let taskContext: { title: string; description: string; language: string; difficulty: string; hints?: string[] } | null = 
           taskProgress?.task ? {
             title: taskProgress.task.title,
             description: taskProgress.task.description,
@@ -401,6 +402,33 @@ export const appRouter = router({
             difficulty: taskProgress.task.difficulty,
             hints: taskProgress.task.hints || []
           } : null
+
+        // Fallback: if no context from session but taskId provided, fetch task (only if user has progress for it)
+        if (!taskContext && inputTaskId) {
+          const taskByUserProgress = await db.userTaskProgress.findFirst({
+            where: { userId: user.id, taskId: inputTaskId },
+            include: {
+              task: {
+                select: {
+                  title: true,
+                  description: true,
+                  language: true,
+                  difficulty: true,
+                  hints: true
+                }
+              }
+            }
+          })
+          if (taskByUserProgress?.task) {
+            taskContext = {
+              title: taskByUserProgress.task.title,
+              description: taskByUserProgress.task.description,
+              language: taskByUserProgress.task.language,
+              difficulty: taskByUserProgress.task.difficulty,
+              hints: taskByUserProgress.task.hints || []
+            }
+          }
+        }
 
         // Create user message with cached question type (non-blocking)
         const userMessagePromise = db.message.create({
