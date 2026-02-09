@@ -6,10 +6,12 @@ import CodeEditor from './CodeEditor'
 interface AssessmentModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (answers: AssessmentAnswer[], confidence: number) => void
+  onSubmit: (answers: AssessmentAnswer[], confidence: number) => void | Promise<void>
   type: 'pre' | 'post'
   questions: AssessmentQuestion[]
   language?: string
+  /** When true, Submit button is disabled and shows "Submitting..." */
+  isSubmitting?: boolean
 }
 
 export interface AssessmentQuestion {
@@ -35,7 +37,8 @@ export default function AssessmentModal({
   onSubmit,
   type,
   questions,
-  language
+  language,
+  isSubmitting = false,
 }: AssessmentModalProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -71,31 +74,28 @@ export default function AssessmentModal({
     }))
   }, [question])
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback(async () => {
     if (!isOpen || questions.length === 0) return
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1)
     } else {
-      // Calculate results
-      // For multiple_choice, check on client. For open questions, server will check with AI
+      // Build answers: use current state; for last question allow empty so server can validate
       const assessmentAnswers: AssessmentAnswer[] = questions.map(q => {
-        const userAnswer = answers[q.id] || ''
+        const userAnswer = answers[q.id] ?? ''
         let isCorrect: boolean | undefined
-        
-        // Only check multiple_choice on client (exact match)
-        // For code_snippet and conceptual, let server check with AI
         if (q.type === 'multiple_choice') {
           isCorrect = userAnswer === q.correctAnswer
         }
-        // For open questions, don't set isCorrect - server will check with AI
-        
         return {
           questionId: q.id,
           answer: userAnswer,
-          isCorrect: isCorrect
+          isCorrect,
         }
       })
-      onSubmit(assessmentAnswers, confidence)
+      const result = onSubmit(assessmentAnswers, confidence)
+      if (result && typeof (result as Promise<unknown>).then === 'function') {
+        await (result as Promise<void>)
+      }
     }
   }, [isOpen, currentQuestion, questions, answers, confidence, onSubmit])
 
@@ -113,8 +113,10 @@ export default function AssessmentModal({
   
   const canProceed = useMemo(() => {
     if (!question) return false
-    return isAnswered || question.type === 'conceptual'
-  }, [isAnswered, question])
+    // On last question, allow submit if any answer is given or conceptual (confidence is always set)
+    const hasAnswer = answers[question.id] !== undefined && answers[question.id] !== ''
+    return hasAnswer || question.type === 'conceptual'
+  }, [answers, question])
 
   if (!isOpen || questions.length === 0 || !question) return null
 
@@ -260,11 +262,15 @@ export default function AssessmentModal({
               </button>
               <button
                 type="button"
-                onClick={handleNext}
-                disabled={!canProceed}
+                onClick={() => void handleNext()}
+                disabled={!canProceed || isSubmitting}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {currentQuestion === questions.length - 1 ? 'Submit' : 'Next'}
+                {isSubmitting
+                  ? 'Submitting...'
+                  : currentQuestion === questions.length - 1
+                    ? 'Submit'
+                    : 'Next'}
               </button>
             </div>
           </div>
