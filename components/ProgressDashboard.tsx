@@ -222,93 +222,26 @@ export default function ProgressDashboard() {
               </p>
               {eligibility ? (
                 <>
-                  {/* Overall Progress */}
+                  {/* Time since registration (30 min required for post-assessment) */}
                   <div className="mb-3">
                     <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-xs font-medium text-white">Overall Progress</span>
-                      <span className="text-xs text-white/70">{eligibility.progressPercentage}%</span>
+                      <span className="text-xs font-medium text-white">Time since registration</span>
+                      <span className="text-xs font-medium text-white">
+                        {eligibility.minutesSinceRegistration}/{eligibility.minMinutesRequired} min
+                        {eligibility.isEligible && ' ✓'}
+                      </span>
                     </div>
                     <div className="w-full bg-gray-700 rounded-full h-2">
                       <div
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all"
+                        className={`h-2 rounded-full transition-all ${
+                          eligibility.isEligible ? 'bg-green-500' : 'bg-gradient-to-r from-blue-600 to-purple-600'
+                        }`}
                         style={{ width: `${eligibility.progressPercentage}%` }}
                       />
                     </div>
-                  </div>
-                  
-                  {/* Individual Requirements */}
-                  <div className="space-y-2 text-xs">
-                    <div>
-                      <div className="flex justify-between mb-1 text-white/80">
-                        <span>Days Active:</span>
-                        <span className="font-medium">
-                          {eligibility.daysSinceRegistration}/{eligibility.minDaysRequired}
-                          {eligibility.daysSinceRegistration >= eligibility.minDaysRequired && ' ✓'}
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full transition-all ${
-                            eligibility.daysSinceRegistration >= eligibility.minDaysRequired
-                              ? 'bg-green-500'
-                              : 'bg-blue-600'
-                          }`}
-                          style={{ width: `${Math.min((eligibility.daysSinceRegistration / eligibility.minDaysRequired) * 100, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between mb-1 text-white/80">
-                        <span>Questions Asked:</span>
-                        <span className="font-medium">
-                          {eligibility.questionsAsked}/{eligibility.minQuestionsRequired}
-                          {eligibility.questionsAsked >= eligibility.minQuestionsRequired && ' ✓'}
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full transition-all ${
-                            eligibility.questionsAsked >= eligibility.minQuestionsRequired
-                              ? 'bg-green-500'
-                              : 'bg-blue-600'
-                          }`}
-                          style={{ width: `${Math.min((eligibility.questionsAsked / eligibility.minQuestionsRequired) * 100, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-white/80">Tasks Completed:</span>
-                        <span className="font-medium text-white">
-                          {eligibility.tasksCompleted}/{eligibility.minTasksRequired}
-                          {eligibility.tasksCompleted >= eligibility.minTasksRequired && ' ✓'}
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full transition-all ${
-                            eligibility.tasksCompleted >= eligibility.minTasksRequired
-                              ? 'bg-green-500'
-                              : 'bg-blue-600'
-                          }`}
-                          style={{ width: `${Math.min((eligibility.tasksCompleted / eligibility.minTasksRequired) * 100, 100)}%` }}
-                        />
-                      </div>
-                      {eligibility.tasksCompleted < eligibility.minTasksRequired && (
-                        <Link
-                          href="/tasks"
-                          className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-blue-500/50 hover:scale-105"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                          </svg>
-                          <span>Complete Tasks</span>
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </Link>
-                      )}
-                    </div>
+                    <p className="text-xs text-white/60 mt-1">
+                      Post-assessment unlocks 30 minutes after registration.
+                    </p>
                   </div>
                 </>
               ) : (
