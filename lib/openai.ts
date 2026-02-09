@@ -114,8 +114,12 @@ export async function generateResponse(
     
     // If this is a task-related conversation, add task-specific instructions
     if (taskContext) {
+      const userMessageCount = conversationHistory?.filter((m) => m.role === 'user').length ?? 0
+      const MIN_QUESTIONS_BEFORE_FULL_CODE = 3
+      const mayGiveFullCode = userMessageCount >= MIN_QUESTIONS_BEFORE_FULL_CODE
+
       const taskInstructions = `
-IMPORTANT: The user is working on a programming task. Your role is to GUIDE and HELP them learn, NOT to provide complete solutions.
+IMPORTANT: The user is working on a programming task. Your role is to GUIDE and HELP them learn, NOT to give the answer immediately.
 
 Task: ${taskContext.title}
 Description: ${taskContext.description}
@@ -123,18 +127,23 @@ Language: ${taskContext.language}
 Difficulty: ${taskContext.difficulty}
 ${taskContext.hints && taskContext.hints.length > 0 ? `Available hints: ${taskContext.hints.join(', ')}` : ''}
 
-CRITICAL RULES when the user asks for help or hints:
-- NEVER provide complete, working solutions
-- NEVER show the full implementation
-- ONLY provide:
+CONVERSATION STAGE: The user has asked ${userMessageCount} question(s) so far in this conversation.
+${mayGiveFullCode
+  ? `You MAY now provide the full solution code if they are still stuck or explicitly ask for it after trying. Prefer to give the complete implementation only when they have clearly attempted the task.`
+  : `You must NOT give the full solution code yet. Only after the user has asked at least ${MIN_QUESTIONS_BEFORE_FULL_CODE} questions in this chat may you provide the complete code. Until then, only give hints, partial code, and guidance.`}
+
+CRITICAL RULES when the user asks for help or hints (especially in early messages):
+- Do NOT provide complete, working solutions until they have asked at least ${MIN_QUESTIONS_BEFORE_FULL_CODE} questions.
+- Do NOT show the full implementation in your first or second response.
+- ONLY provide for now:
   * Step-by-step guidance on HOW to approach the problem
   * Conceptual explanations
-  * Partial code snippets showing the STRUCTURE or PATTERN, not the complete solution
+  * Partial code snippets showing the STRUCTURE or one small part, not the complete solution
   * Leading questions to help them think
   * References to relevant concepts or methods they should use
-- If they ask "give me hints" or "how to implement", give them GUIDANCE, not code
-- Example of GOOD response: "Think about how you can reverse a string. What methods are available? Consider using split() and reverse(). Try building it step by step."
-- Example of BAD response: "Here's the complete function: function isPalindrome(str) { return str === str.split('').reverse().join(''); }"
+- If they ask "give me the code" or "solve it for me" early on, say: "I'll help you get there step by step. First, try to think about [concept]. What would you use for [step]?"
+- Example of GOOD early response: "Think about how you can reverse a string. What methods are available? Consider using split() and reverse(). Try building it step by step."
+- Example of BAD early response: "Here's the complete function: function isPalindrome(str) { return str === str.split('').reverse().join(''); }"
 
 When the user shares their solution or code:
 - Review their code and provide constructive feedback
@@ -142,7 +151,7 @@ When the user shares their solution or code:
 - If there are issues, point them out gently and guide them to fix it
 - Encourage them to mark the task as completed if their solution works
 
-The goal is LEARNING, not just completing the task. Help them understand the concepts and develop problem-solving skills through guided discovery.
+The goal is LEARNING. Only give the full code after several back-and-forth questions, so they learn through guided discovery.
 `
       systemPrompt = `${systemPrompt}\n\n${taskInstructions}`
     }
