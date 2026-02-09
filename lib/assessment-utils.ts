@@ -4,22 +4,28 @@
 
 export interface PostAssessmentEligibility {
   isEligible: boolean
+  minutesSinceRegistration: number
+  minMinutesRequired: number
+  /** @deprecated Kept for backward compatibility; not used for eligibility */
   daysSinceRegistration: number
   questionsAsked: number
   tasksCompleted: number
-  totalTimeSpent: number // in seconds
+  totalTimeSpent: number
+  /** @deprecated Kept for backward compatibility */
   minDaysRequired: number
+  /** @deprecated Kept for backward compatibility */
   minQuestionsRequired: number
+  /** @deprecated Kept for backward compatibility */
   minTasksRequired: number
   progressPercentage: number
 }
 
-const MIN_DAYS_REQUIRED = 14
-const MIN_QUESTIONS_REQUIRED = 20
-const MIN_TASKS_REQUIRED = 5
+/** Post-assessment unlocks 30 minutes after registration (knowledge check time). */
+const MIN_MINUTES_AFTER_REGISTRATION = 30
 
 /**
- * Checks if user is eligible for post-assessment
+ * Checks if user is eligible for post-assessment.
+ * Eligibility: at least 30 minutes since registration (no days/questions/tasks required).
  */
 export function checkPostAssessmentEligibility(
   registrationDate: Date,
@@ -28,32 +34,31 @@ export function checkPostAssessmentEligibility(
   totalTimeSpent: number
 ): PostAssessmentEligibility {
   const now = new Date()
+  const minutesSinceRegistration = Math.floor(
+    (now.getTime() - registrationDate.getTime()) / (1000 * 60)
+  )
   const daysSinceRegistration = Math.floor(
     (now.getTime() - registrationDate.getTime()) / (1000 * 60 * 60 * 24)
   )
 
-  const daysProgress = Math.min((daysSinceRegistration / MIN_DAYS_REQUIRED) * 100, 100)
-  const questionsProgress = Math.min((questionsAsked / MIN_QUESTIONS_REQUIRED) * 100, 100)
-  const tasksProgress = Math.min((tasksCompleted / MIN_TASKS_REQUIRED) * 100, 100)
-
-  // Average progress across all requirements
-  const progressPercentage = (daysProgress + questionsProgress + tasksProgress) / 3
-
-  const isEligible =
-    daysSinceRegistration >= MIN_DAYS_REQUIRED &&
-    questionsAsked >= MIN_QUESTIONS_REQUIRED &&
-    tasksCompleted >= MIN_TASKS_REQUIRED
+  const isEligible = minutesSinceRegistration >= MIN_MINUTES_AFTER_REGISTRATION
+  const progressPercentage = Math.min(
+    100,
+    Math.round((minutesSinceRegistration / MIN_MINUTES_AFTER_REGISTRATION) * 100)
+  )
 
   return {
     isEligible,
+    minutesSinceRegistration,
+    minMinutesRequired: MIN_MINUTES_AFTER_REGISTRATION,
     daysSinceRegistration,
     questionsAsked,
     tasksCompleted,
     totalTimeSpent,
-    minDaysRequired: MIN_DAYS_REQUIRED,
-    minQuestionsRequired: MIN_QUESTIONS_REQUIRED,
-    minTasksRequired: MIN_TASKS_REQUIRED,
-    progressPercentage: Math.round(progressPercentage),
+    minDaysRequired: 0,
+    minQuestionsRequired: 0,
+    minTasksRequired: 0,
+    progressPercentage,
   }
 }
 
@@ -65,23 +70,9 @@ export function getPostAssessmentMessage(eligibility: PostAssessmentEligibility)
     return "You're ready for post-assessment!"
   }
 
-  const missing: string[] = []
-  
-  if (eligibility.daysSinceRegistration < eligibility.minDaysRequired) {
-    const daysLeft = eligibility.minDaysRequired - eligibility.daysSinceRegistration
-    missing.push(`${daysLeft} more day${daysLeft > 1 ? 's' : ''}`)
+  const minutesLeft = eligibility.minMinutesRequired - eligibility.minutesSinceRegistration
+  if (minutesLeft <= 0) {
+    return "You're ready for post-assessment!"
   }
-  
-  if (eligibility.questionsAsked < eligibility.minQuestionsRequired) {
-    const questionsLeft = eligibility.minQuestionsRequired - eligibility.questionsAsked
-    missing.push(`${questionsLeft} more question${questionsLeft > 1 ? 's' : ''}`)
-  }
-  
-  if (eligibility.tasksCompleted < eligibility.minTasksRequired) {
-    const tasksLeft = eligibility.minTasksRequired - eligibility.tasksCompleted
-    missing.push(`${tasksLeft} more task${tasksLeft > 1 ? 's' : ''}`)
-  }
-
-  return `Complete ${missing.join(', ')} to unlock post-assessment`
+  return `Complete ${minutesLeft} more minute${minutesLeft !== 1 ? 's' : ''} after registration to unlock post-assessment`
 }
-

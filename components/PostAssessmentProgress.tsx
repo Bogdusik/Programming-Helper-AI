@@ -8,12 +8,10 @@ export default function PostAssessmentProgress() {
   const { data: eligibility, isLoading } = trpc.assessment.checkPostAssessmentEligibility.useQuery()
   const { data: assessments } = trpc.assessment.getAssessments.useQuery()
   
-  // Use explicit type casting to avoid "Type instantiation is excessively deep" error
   type SimpleAssessment = { type: string }
   const assessmentsArray = assessments as unknown as SimpleAssessment[] | undefined
   const postAssessment = assessmentsArray?.find((a) => a.type === 'post')
   
-  // Don't show if already completed
   if (postAssessment) {
     return null
   }
@@ -22,7 +20,7 @@ export default function PostAssessmentProgress() {
     return null
   }
   
-  const progressPercentage = eligibility.progressPercentage || 0
+  const progressPercentage = eligibility.progressPercentage ?? 0
   
   return (
     <div className="glass rounded-lg shadow-lg p-6 border border-blue-500/20 bg-gradient-to-br from-blue-900/20 to-purple-900/20">
@@ -45,84 +43,26 @@ export default function PostAssessmentProgress() {
         )}
       </div>
       
-      {/* Overall Progress Bar */}
+      {/* Time since registration (30 min required) */}
       <div className="mb-4">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium text-white">Overall Progress</span>
-          <span className="text-sm text-white/70">{progressPercentage}%</span>
+          <span className="text-sm font-medium text-white">Time since registration</span>
+          <span className="text-sm text-white/70">
+            {eligibility.minutesSinceRegistration}/{eligibility.minMinutesRequired} min
+            {eligibility.isEligible && ' ✓'}
+          </span>
         </div>
         <div className="w-full bg-gray-700 rounded-full h-3">
           <div
-            className="bg-gradient-to-r from-blue-600 to-purple-600 h-3 rounded-full transition-all duration-500"
+            className={`h-3 rounded-full transition-all duration-500 ${
+              eligibility.isEligible ? 'bg-green-500' : 'bg-gradient-to-r from-blue-600 to-purple-600'
+            }`}
             style={{ width: `${progressPercentage}%` }}
           />
         </div>
-      </div>
-      
-      {/* Individual Requirements */}
-      <div className="grid grid-cols-3 gap-3 text-xs">
-        <div>
-          <div className="flex justify-between mb-1">
-            <span className="text-white/70">Days</span>
-            <span className="text-white font-medium">
-              {eligibility.daysSinceRegistration}/{eligibility.minDaysRequired}
-            </span>
-          </div>
-          <div className="w-full bg-gray-700 rounded-full h-1.5">
-            <div
-              className={`h-1.5 rounded-full transition-all ${
-                eligibility.daysSinceRegistration >= eligibility.minDaysRequired
-                  ? 'bg-green-500'
-                  : 'bg-blue-500'
-              }`}
-              style={{ 
-                width: `${Math.min((eligibility.daysSinceRegistration / eligibility.minDaysRequired) * 100, 100)}%` 
-              }}
-            />
-          </div>
-        </div>
-        
-        <div>
-          <div className="flex justify-between mb-1">
-            <span className="text-white/70">Questions</span>
-            <span className="text-white font-medium">
-              {eligibility.questionsAsked}/{eligibility.minQuestionsRequired}
-            </span>
-          </div>
-          <div className="w-full bg-gray-700 rounded-full h-1.5">
-            <div
-              className={`h-1.5 rounded-full transition-all ${
-                eligibility.questionsAsked >= eligibility.minQuestionsRequired
-                  ? 'bg-green-500'
-                  : 'bg-blue-500'
-              }`}
-              style={{ 
-                width: `${Math.min((eligibility.questionsAsked / eligibility.minQuestionsRequired) * 100, 100)}%` 
-              }}
-            />
-          </div>
-        </div>
-        
-        <div>
-          <div className="flex justify-between mb-1">
-            <span className="text-white/70">Tasks</span>
-            <span className="text-white font-medium">
-              {eligibility.tasksCompleted}/{eligibility.minTasksRequired}
-            </span>
-          </div>
-          <div className="w-full bg-gray-700 rounded-full h-1.5">
-            <div
-              className={`h-1.5 rounded-full transition-all ${
-                eligibility.tasksCompleted >= eligibility.minTasksRequired
-                  ? 'bg-green-500'
-                  : 'bg-blue-500'
-              }`}
-              style={{ 
-                width: `${Math.min((eligibility.tasksCompleted / eligibility.minTasksRequired) * 100, 100)}%` 
-              }}
-            />
-          </div>
-        </div>
+        <p className="text-xs text-white/60 mt-1">
+          Post-assessment unlocks 30 minutes after registration.
+        </p>
       </div>
       
       {eligibility.isEligible && (
@@ -138,4 +78,3 @@ export default function PostAssessmentProgress() {
     </div>
   )
 }
-
