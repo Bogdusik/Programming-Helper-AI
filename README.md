@@ -66,6 +66,12 @@ An AI-powered programming assistant designed for academic research on AI-assiste
 
 > **Important**: Never hardcode secrets. Always use `.env.local` file for sensitive data.
 
+### Deploying to Vercel
+
+1. Connect the repo in [Vercel](https://vercel.com) (GitHub → **Bogdusik/Programming-Helper-AI**, branch **main**).
+2. Set environment variables in the project **Settings** → **Environment Variables** (same as in `.env.local`).
+3. Deploy. If you see **"There was a permanent problem cloning the repo"**, follow [docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md) to fix GitHub access and reconnect the project.
+
 ### Snyk / Security
 
 - **@trpc/server** and all `@trpc/*` packages are kept at **11.8.0+** to fix the Prototype Pollution vulnerability (Snyk).
