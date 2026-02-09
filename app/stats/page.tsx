@@ -12,6 +12,7 @@ import AssessmentModal, { AssessmentQuestion } from '../../components/Assessment
 import { trpc } from '../../lib/trpc-client'
 import { clientLogger } from '../../lib/client-logger'
 import { useUserRegistrationCheck } from '../../hooks/useUserRegistrationCheck'
+import toast from 'react-hot-toast'
 
 export default function StatsPage() {
   const { isSignedIn, isLoaded } = useUser()
@@ -119,10 +120,12 @@ export default function StatsPage() {
         confidence,
       })
       setShowPostAssessment(false)
-      // Refresh stats to show improvement
+      toast.success('Post-assessment submitted successfully!')
       window.location.reload()
     } catch (error) {
       clientLogger.error('Error submitting assessment:', error)
+      const message = error instanceof Error ? error.message : 'Failed to submit. Please try again.'
+      toast.error(message)
     }
   }
 
@@ -167,6 +170,7 @@ export default function StatsPage() {
           type="post"
           questions={assessmentQuestions}
           language={userProfile?.primaryLanguage || undefined}
+          isSubmitting={submitAssessmentMutation.isPending}
         />
       )}
 
