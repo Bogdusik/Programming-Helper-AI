@@ -7,105 +7,87 @@ describe('assessment-utils.ts', () => {
   describe('checkPostAssessmentEligibility', () => {
     beforeEach(() => {
       jest.useFakeTimers()
-      jest.setSystemTime(new Date('2024-01-15T12:00:00Z'))
+      jest.setSystemTime(new Date('2024-01-15T12:30:00Z'))
     })
 
     afterEach(() => {
       jest.useRealTimers()
     })
 
-    it('returns eligible when all requirements are met', () => {
-      const registrationDate = new Date('2024-01-01T12:00:00Z') // 14 days ago
+    it('returns eligible when 30+ minutes have passed since registration', () => {
+      const registrationDate = new Date('2024-01-15T12:00:00Z') // 30 min ago
       const result = checkPostAssessmentEligibility(
         registrationDate,
-        25, // 25 questions (>= 20)
-        6,  // 6 tasks (>= 5)
-        3600 // 1 hour in seconds
+        0,
+        0,
+        0
       )
 
       expect(result.isEligible).toBe(true)
-      expect(result.daysSinceRegistration).toBe(14)
-      expect(result.questionsAsked).toBe(25)
-      expect(result.tasksCompleted).toBe(6)
+      expect(result.minutesSinceRegistration).toBe(30)
+      expect(result.minMinutesRequired).toBe(30)
     })
 
-    it('returns not eligible when days requirement not met', () => {
-      const registrationDate = new Date('2024-01-10T12:00:00Z') // 5 days ago
+    it('returns not eligible when less than 30 minutes since registration', () => {
+      const registrationDate = new Date('2024-01-15T12:15:00Z') // 15 min ago
       const result = checkPostAssessmentEligibility(
         registrationDate,
-        25,
-        6,
+        100,
+        100,
         3600
       )
 
       expect(result.isEligible).toBe(false)
-      expect(result.daysSinceRegistration).toBe(5)
+      expect(result.minutesSinceRegistration).toBe(15)
     })
 
-    it('returns not eligible when questions requirement not met', () => {
-      const registrationDate = new Date('2024-01-01T12:00:00Z')
+    it('returns eligible when more than 30 minutes have passed', () => {
+      const registrationDate = new Date('2024-01-15T11:00:00Z') // 90 min ago
       const result = checkPostAssessmentEligibility(
         registrationDate,
-        10, // Only 10 questions (< 20)
-        6,
-        3600
+        0,
+        0,
+        0
       )
 
-      expect(result.isEligible).toBe(false)
-      expect(result.questionsAsked).toBe(10)
+      expect(result.isEligible).toBe(true)
+      expect(result.minutesSinceRegistration).toBe(90)
     })
 
-    it('returns not eligible when tasks requirement not met', () => {
-      const registrationDate = new Date('2024-01-01T12:00:00Z')
+    it('calculates progress percentage based on time only', () => {
+      const registrationDate = new Date('2024-01-15T12:15:00Z') // 15 min ago = 50%
       const result = checkPostAssessmentEligibility(
         registrationDate,
-        25,
-        3, // Only 3 tasks (< 5)
-        3600
+        0,
+        0,
+        0
       )
 
-      expect(result.isEligible).toBe(false)
-      expect(result.tasksCompleted).toBe(3)
-    })
-
-    it('calculates progress percentage correctly', () => {
-      const registrationDate = new Date('2024-01-08T12:00:00Z') // 7 days (50% of 14)
-      const result = checkPostAssessmentEligibility(
-        registrationDate,
-        10, // 50% of 20
-        3,  // 60% of 5
-        3600
-      )
-
-      // Average of 50%, 50%, 60% = 53.33% rounded to 53%
-      expect(result.progressPercentage).toBeGreaterThan(50)
-      expect(result.progressPercentage).toBeLessThan(60)
+      expect(result.progressPercentage).toBe(50)
     })
 
     it('caps progress at 100%', () => {
-      const registrationDate = new Date('2023-12-01T12:00:00Z') // Way more than 14 days
+      const registrationDate = new Date('2024-01-14T12:00:00Z') // 24+ hours ago
       const result = checkPostAssessmentEligibility(
         registrationDate,
-        100, // Way more than 20
-        20,  // Way more than 5
-        3600
+        0,
+        0,
+        0
       )
 
       expect(result.progressPercentage).toBe(100)
     })
 
-    it('returns correct minimum requirements', () => {
-      const registrationDate = new Date('2024-01-01T12:00:00Z')
+    it('returns correct minimum minutes requirement', () => {
+      const registrationDate = new Date('2024-01-15T12:00:00Z')
       const result = checkPostAssessmentEligibility(
         registrationDate,
-        25,
-        6,
-        3600
+        0,
+        0,
+        0
       )
 
-      expect(result.minDaysRequired).toBe(14)
-      expect(result.minQuestionsRequired).toBe(20)
-      expect(result.minTasksRequired).toBe(5)
+      expect(result.minMinutesRequired).toBe(30)
     })
   })
 
@@ -113,41 +95,40 @@ describe('assessment-utils.ts', () => {
     it('returns success message when eligible', () => {
       const eligibility = {
         isEligible: true,
-        daysSinceRegistration: 14,
-        questionsAsked: 25,
-        tasksCompleted: 6,
-        totalTimeSpent: 3600,
-        minDaysRequired: 14,
-        minQuestionsRequired: 20,
-        minTasksRequired: 5,
+        minutesSinceRegistration: 30,
+        minMinutesRequired: 30,
+        daysSinceRegistration: 0,
+        questionsAsked: 0,
+        tasksCompleted: 0,
+        totalTimeSpent: 0,
+        minDaysRequired: 0,
+        minQuestionsRequired: 0,
+        minTasksRequired: 0,
         progressPercentage: 100,
       }
 
       const message = getPostAssessmentMessage(eligibility)
-      // The message for eligible users is "You're ready for post-assessment!"
       expect(message).toBe("You're ready for post-assessment!")
     })
 
-    it('returns progress message when not eligible', () => {
+    it('returns time message when not eligible', () => {
       const eligibility = {
         isEligible: false,
-        daysSinceRegistration: 7,
-        questionsAsked: 10,
-        tasksCompleted: 3,
-        totalTimeSpent: 1800,
-        minDaysRequired: 14,
-        minQuestionsRequired: 20,
-        minTasksRequired: 5,
-        progressPercentage: 50,
+        minutesSinceRegistration: 10,
+        minMinutesRequired: 30,
+        daysSinceRegistration: 0,
+        questionsAsked: 0,
+        tasksCompleted: 0,
+        totalTimeSpent: 0,
+        minDaysRequired: 0,
+        minQuestionsRequired: 0,
+        minTasksRequired: 0,
+        progressPercentage: 33,
       }
 
       const message = getPostAssessmentMessage(eligibility)
-      // The message format is "Complete X more days, Y more questions, Z more tasks to unlock post-assessment"
-      // It doesn't contain "progress" or percentage, it contains the actual requirements
-      expect(message).toContain('more day')
-      expect(message).toContain('more question')
-      expect(message).toContain('more task')
+      expect(message).toContain('20 more minute')
+      expect(message).toContain('unlock post-assessment')
     })
   })
 })
-

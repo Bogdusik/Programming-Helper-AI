@@ -96,7 +96,7 @@ const faqData: FAQItem[] = [
   {
     category: 'Tasks & Practice',
     question: 'Do tasks affect my statistics?',
-    answer: 'Yes! Completing tasks contributes to your overall statistics. Each completed task increases your "Tasks Completed" count and updates your language-specific progress. This helps track your learning journey and is required for post-assessment eligibility.'
+    answer: 'Yes! Completing tasks contributes to your overall statistics. Each completed task increases your "Tasks Completed" count and updates your language-specific progress. Post-assessment unlocks 30 minutes after registration.'
   },
   {
     category: 'Tasks & Practice',
@@ -130,17 +130,17 @@ const faqData: FAQItem[] = [
   {
     category: 'Assessments',
     question: 'What is the difference between pre and post-assessment?',
-    answer: 'The pre-assessment is taken when you first start using the service to establish your baseline knowledge. The post-assessment is taken after you\'ve been active for a while (meeting certain criteria) to measure your improvement. Both help personalize your learning experience.'
+    answer: 'The pre-assessment is taken when you first start using the service to establish your baseline knowledge. The post-assessment becomes available 30 minutes after registration and measures your improvement. Both help personalize your learning experience.'
   },
   {
     category: 'Assessments',
     question: 'When can I take the post-assessment?',
-    answer: 'You can take the post-assessment once you meet the eligibility requirements: being active for at least 7 days, asking at least 20 questions, and completing at least 5 tasks. Check your Statistics page to see your progress toward eligibility.'
+    answer: 'You can take the post-assessment 30 minutes after your registration. Check your Statistics page to see when it unlocks.'
   },
   {
     category: 'Assessments',
     question: 'What happens if I don\'t meet the post-assessment requirements?',
-    answer: 'If you don\'t meet the requirements yet, you can see your progress on the Statistics page. The system shows you exactly how many days active, questions asked, and tasks completed you need to become eligible. Keep using the service to unlock the post-assessment!'
+    answer: 'Post-assessment unlocks 30 minutes after registration. On the Statistics page you can see how much time is left until it becomes available.'
   },
   {
     category: 'Assessments',
