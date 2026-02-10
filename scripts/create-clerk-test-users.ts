@@ -1,6 +1,6 @@
 /**
  * Creates test users in Clerk via Backend API.
- * Requires CLERK_SECRET_KEY in .env (from Clerk Dashboard → API Keys).
+ * Requires CLERK_SECRET_KEY in .env or .env.local (from Clerk Dashboard → API Keys).
  * Run: npx tsx scripts/create-clerk-test-users.ts
  *
  * Users will still need to be created in your app DB on first sign-in
@@ -10,15 +10,19 @@
 import * as fs from 'fs'
 import * as path from 'path'
 
-// Load .env from project root
-const envPath = path.join(process.cwd(), '.env')
-if (fs.existsSync(envPath)) {
-  const raw = fs.readFileSync(envPath, 'utf-8')
-  for (const line of raw.split('\n')) {
-    const m = line.match(/^\s*([^#=]+)=(.*)$/)
-    if (m) process.env[m[1].trim()] = m[2].trim().replace(/^["']|["']$/g, '')
+// Load .env and .env.local from project root (.env.local overrides)
+function loadEnv(file: string) {
+  const envPath = path.join(process.cwd(), file)
+  if (fs.existsSync(envPath)) {
+    const raw = fs.readFileSync(envPath, 'utf-8')
+    for (const line of raw.split('\n')) {
+      const m = line.match(/^\s*([^#=]+)=(.*)$/)
+      if (m) process.env[m[1].trim()] = m[2].trim().replace(/^["']|["']$/g, '')
+    }
   }
 }
+loadEnv('.env')
+loadEnv('.env.local')
 
 const CLERK_SECRET = process.env.CLERK_SECRET_KEY
 const TEST_USERS_PATH = path.join(process.cwd(), 'scripts', 'test-users.json')
