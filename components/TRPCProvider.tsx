@@ -34,6 +34,15 @@ export default function TRPCProvider({ children }: { children: React.ReactNode }
           const isBlockedError = (code?: string, message?: string) =>
             code === 'FORBIDDEN' && message === 'User account is blocked'
 
+          // Break redirect loop: on protected pages, invalid session → clear cookies once and go home
+          const handleInvalidSession = () => {
+            if (typeof window === 'undefined' || window.location.pathname.startsWith('/api/')) return
+            const protectedPaths = ['/chat', '/stats', '/admin', '/settings', '/tasks']
+            if (protectedPaths.some((p) => window.location.pathname.startsWith(p))) {
+              window.location.href = '/api/clear-session'
+            }
+          }
+
           // Check for "Not Found" errors from Clerk - these can be temporary during user creation
           const isNotFoundError = (code?: string, httpStatus?: number, message?: string, cause?: unknown) => {
             if (httpStatus === 404) return true
@@ -53,6 +62,8 @@ export default function TRPCProvider({ children }: { children: React.ReactNode }
             if (isAuthError(errorData.code, errorData.httpStatus)) {
               if (isBlockedError(errorData.code, errorData.message)) {
                 handleBlockedUser()
+              } else {
+                handleInvalidSession()
               }
               return false
             }
@@ -79,6 +90,8 @@ export default function TRPCProvider({ children }: { children: React.ReactNode }
             if (isAuthError(trpcError.code)) {
               if (isBlockedError(trpcError.code, trpcError.message)) {
                 handleBlockedUser()
+              } else {
+                handleInvalidSession()
               }
               return false
             }

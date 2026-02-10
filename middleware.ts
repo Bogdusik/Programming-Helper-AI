@@ -56,11 +56,9 @@ export default clerkMiddleware(async (auth, req) => {
       // User is authenticated - allow access
       return NextResponse.next()
     } catch {
-      // Silently handle auth errors - redirect to sign-in
-      // This prevents unhandled rejection errors in console
-      const signInUrl = new URL('/sign-in', req.url)
-      signInUrl.searchParams.set('redirect_url', req.url)
-      return NextResponse.redirect(signInUrl)
+      // Auth error (e.g. invalid session, keys mismatch) → clear cookies first to break redirect loop
+      const clearUrl = new URL('/api/clear-session', req.url)
+      return NextResponse.redirect(clearUrl)
     }
   }
   
