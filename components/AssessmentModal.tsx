@@ -106,7 +106,7 @@ export default function AssessmentModal({
   }, [currentQuestion])
 
   // OPTIMIZATION: Memoize computed values
-  const isAnswered = useMemo(() => {
+  const _isAnswered = useMemo(() => {
     if (!question) return false
     return answers[question.id] !== undefined
   }, [answers, question])
