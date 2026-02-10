@@ -18,9 +18,12 @@ const isBlockedAllowedRoute = createRouteMatcher([
   '/terms(.*)'
 ])
 
-// Public API routes that don't require authentication
+// Public API routes that don't require authentication (Clerk skips these)
 const isPublicApiRoute = createRouteMatcher([
-  '/api/trpc/stats.getGlobalStats(.*)'
+  '/api/trpc/stats.getGlobalStats(.*)',
+  '/api/health(.*)',
+  '/api/check-clerk-env(.*)',
+  '/api/diagnose(.*)',
 ])
 
 export default clerkMiddleware(async (auth, req) => {
