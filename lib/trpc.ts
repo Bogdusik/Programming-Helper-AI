@@ -60,6 +60,29 @@ const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 })
 
 /**
+ * Optional auth procedure: never throws UNAUTHORIZED.
+ * Use for queries that can return "no user" (e.g. getMyRole) to avoid error logs on race conditions.
+ */
+const optionalProtectedProcedure = t.procedure.use(async ({ ctx, next }) => {
+  let user: Awaited<ReturnType<typeof getCurrentUser>> = null
+  try {
+    user = await getCurrentUser()
+  } catch (e) {
+    if (e instanceof TRPCError && e.code === 'UNAUTHORIZED') {
+      user = null
+    } else {
+      throw e
+    }
+  }
+  return next({
+    ctx: {
+      ...ctx,
+      user,
+    },
+  })
+})
+
+/**
  * Admin procedure that requires admin role
  * Must be used after protectedProcedure to ensure user is authenticated
  * @throws TRPCError with FORBIDDEN code if user is not admin
@@ -654,12 +677,12 @@ export const appRouter = router({
   }),
 
   auth: router({
-    getMyRole: protectedProcedure
+    getMyRole: optionalProtectedProcedure
       .query(async ({ ctx }) => {
         const { user } = ctx
         return {
-          role: user.role,
-          id: user.id
+          role: user?.role ?? null,
+          id: user?.id ?? null
         }
       }),
   }),
