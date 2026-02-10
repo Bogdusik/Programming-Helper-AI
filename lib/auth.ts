@@ -3,11 +3,12 @@ import { TRPCError } from '@trpc/server'
 import { db } from './db'
 
 /**
- * Get current authenticated user from Clerk and database
- * Does NOT create user automatically - user must be registered through sign-up
- * @returns User object from database or null if not authenticated or not registered
+ * Get current authenticated user from Clerk and database.
+ * If user exists in Clerk but not in DB (e.g. created via Clerk API or first sign-in),
+ * creates them in the database automatically.
+ * @returns User object from database or null if not authenticated
  * @throws TRPCError with FORBIDDEN code if user is blocked
- * @throws TRPCError with UNAUTHORIZED code if user is not registered (doesn't exist in database)
+ * @throws TRPCError with UNAUTHORIZED only if DB create fails (e.g. DB error)
  */
 export async function getCurrentUser() {
   let user
@@ -61,13 +62,39 @@ export async function getCurrentUser() {
     })
   }
 
-  // If user doesn't exist, throw UNAUTHORIZED error
-  // User must be registered through sign-up before they can use the application
+  // If user doesn't exist in DB but is in Clerk (e.g. created via Clerk API or signed in without app sign-up),
+  // create them in the database so they can use the app
   if (!dbUser) {
-    throw new TRPCError({
-      code: 'UNAUTHORIZED',
-      message: 'User not registered. Please sign up first.'
-    })
+    try {
+      dbUser = await db.user.create({
+        data: {
+          id: user.id,
+          role: isAdmin ? 'admin' : 'user',
+          isBlocked: false
+        },
+        select: {
+          id: true,
+          role: true,
+          isBlocked: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      })
+    } catch (error) {
+      // P2002 = unique constraint (user was created concurrently by another request)
+      if (error && typeof error === 'object' && error !== null && 'code' in error && (error as { code: string }).code === 'P2002') {
+        dbUser = await db.user.findUnique({
+          where: { id: user.id },
+          select: { id: true, role: true, isBlocked: true, createdAt: true, updatedAt: true }
+        })
+      }
+      if (!dbUser) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'User not registered. Please sign up first.'
+        })
+      }
+    }
   }
 
   // Check if user is blocked
