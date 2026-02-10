@@ -1706,16 +1706,12 @@ async function main() {
       },
     })
   }
-
-  console.log('Seed data created successfully!')
-  console.log(`Created ${assessmentQuestions.length} assessment questions`)
-  console.log(`Created ${programmingTasks.length} programming tasks`)
 }
 
 main()
   .catch((e) => {
-    console.error(e)
-    process.exit(1)
+    process.exitCode = 1
+    throw e
   })
   .finally(async () => {
     await prisma.$disconnect()
