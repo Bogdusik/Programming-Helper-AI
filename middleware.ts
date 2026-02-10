@@ -23,6 +23,7 @@ const isPublicApiRoute = createRouteMatcher([
   '/api/trpc/stats.getGlobalStats(.*)',
   '/api/health(.*)',
   '/api/check-clerk-env(.*)',
+  '/api/clear-session(.*)',
   '/api/diagnose(.*)',
 ])
 
