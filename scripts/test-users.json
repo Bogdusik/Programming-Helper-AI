@@ -1,0 +1,12 @@
+[
+  { "email": "ph.tester1@gmail.com", "password": "TestPass123!", "firstName": "Test", "lastName": "User 1" },
+  { "email": "ph.tester2@gmail.com", "password": "TestPass123!", "firstName": "Test", "lastName": "User 2" },
+  { "email": "ph.tester3@gmail.com", "password": "TestPass123!", "firstName": "Test", "lastName": "User 3" },
+  { "email": "ph.tester4@gmail.com", "password": "TestPass123!", "firstName": "Test", "lastName": "User 4" },
+  { "email": "ph.tester5@gmail.com", "password": "TestPass123!", "firstName": "Test", "lastName": "User 5" },
+  { "email": "ph.tester6@gmail.com", "password": "TestPass123!", "firstName": "Test", "lastName": "User 6" },
+  { "email": "ph.tester7@gmail.com", "password": "TestPass123!", "firstName": "Test", "lastName": "User 7" },
+  { "email": "ph.tester8@gmail.com", "password": "TestPass123!", "firstName": "Test", "lastName": "User 8" },
+  { "email": "ph.tester9@gmail.com", "password": "TestPass123!", "firstName": "Test", "lastName": "User 9" },
+  { "email": "ph.tester10@gmail.com", "password": "TestPass123!", "firstName": "Test", "lastName": "User 10" }
+]
