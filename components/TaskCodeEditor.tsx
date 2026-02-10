@@ -42,7 +42,7 @@ export default function TaskCodeEditor({
   testCases: _testCases,
   value,
   onChange,
-  placeholder = 'Write your solution here...',
+  placeholder: _placeholder = 'Write your solution here...',
   height = '100%',
   onRunTests,
 }: TaskCodeEditorProps) {
