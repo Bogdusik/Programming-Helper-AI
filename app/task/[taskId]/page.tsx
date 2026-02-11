@@ -87,12 +87,28 @@ function TaskPageContent() {
       if (progress?.chatSessionId) {
         sessionId = progress.chatSessionId
       } else {
-        // Create new session
-        const session = await createSessionMutation.mutateAsync({
-          title: `Task: ${taskDataSimple.title}`,
-        })
+        // Ensure user is in DB before creating session
+        await fetch('/api/check-user-exists', { credentials: 'include' })
+        let session: { id: string }
+        try {
+          session = await createSessionMutation.mutateAsync({
+            title: `Task: ${taskDataSimple.title}`,
+          })
+        } catch (firstError: unknown) {
+          const isUnauthorized =
+            firstError && typeof firstError === 'object' && 'data' in firstError &&
+            (firstError as { data?: { code?: string } }).data?.code === 'UNAUTHORIZED'
+          if (isUnauthorized) {
+            await new Promise(r => setTimeout(r, 800))
+            session = await createSessionMutation.mutateAsync({
+              title: `Task: ${taskDataSimple.title}`,
+            })
+          } else {
+            throw firstError
+          }
+        }
         sessionId = session.id
-        
+
         // Update task progress with session ID and set status to in_progress
         try {
           await updateProgressMutation.mutateAsync({
@@ -177,12 +193,30 @@ function TaskPageContent() {
         }
       }
       
-      // Create new session if no valid existing session
-      const session = await createSessionMutation.mutateAsync({
-        title: `Task: ${taskDataSimple.title}`,
-      })
+      // Ensure user is in DB (avoids UNAUTHORIZED race when opening chat from task)
+      await fetch('/api/check-user-exists', { credentials: 'include' })
+
+      // Create new session if no valid existing session (retry once on UNAUTHORIZED)
+      let session: { id: string }
+      try {
+        session = await createSessionMutation.mutateAsync({
+          title: `Task: ${taskDataSimple.title}`,
+        })
+      } catch (firstError: unknown) {
+        const isUnauthorized =
+          firstError && typeof firstError === 'object' && 'data' in firstError &&
+          (firstError as { data?: { code?: string } }).data?.code === 'UNAUTHORIZED'
+        if (isUnauthorized) {
+          await new Promise(r => setTimeout(r, 800))
+          session = await createSessionMutation.mutateAsync({
+            title: `Task: ${taskDataSimple.title}`,
+          })
+        } else {
+          throw firstError
+        }
+      }
       sessionId = session.id
-      
+
       // Update task progress with session ID and set status to in_progress
       try {
         await updateProgressMutation.mutateAsync({
@@ -194,7 +228,7 @@ function TaskPageContent() {
         clientLogger.error('Error updating task progress:', error)
         // Continue anyway - session is created
       }
-      
+
       // Navigate to chat with sessionId and taskId for initialization
       router.push(`/chat?sessionId=${sessionId}&taskId=${taskDataSimple.id}`)
     } catch (error) {
