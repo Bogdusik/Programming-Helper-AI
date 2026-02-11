@@ -19,10 +19,29 @@ export const publicProcedure = t.procedure
 /**
  * Protected procedure that requires authentication
  * Ensures user is authenticated before proceeding
+ * Retries getCurrentUser once after delay to avoid UNAUTHORIZED on session race (e.g. chat.sendMessage).
  * Includes timeout protection for long-running operations
  */
 const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
-  const user = await getCurrentUser()
+  let user: Awaited<ReturnType<typeof getCurrentUser>> = null
+  try {
+    user = await getCurrentUser()
+  } catch (e) {
+    if (e instanceof TRPCError && e.code === 'UNAUTHORIZED') {
+      await new Promise(r => setTimeout(r, 600))
+      try {
+        user = await getCurrentUser()
+      } catch {
+        throw e
+      }
+    } else {
+      throw e
+    }
+  }
+  if (!user) {
+    await new Promise(r => setTimeout(r, 600))
+    user = await getCurrentUser()
+  }
   if (!user) {
     throw new TRPCError({ code: 'UNAUTHORIZED' })
   }

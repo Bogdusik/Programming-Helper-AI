@@ -222,11 +222,27 @@ function TasksPageContent() {
         return
       }
       
-      // Create a chat session with task title
-      const session = await createSessionMutation.mutateAsync({
-        title: `Task: ${task.title}`,
-      })
-      
+      // Ensure user is in DB before creating session (avoids UNAUTHORIZED race)
+      await fetch('/api/check-user-exists', { credentials: 'include' })
+      let session: { id: string }
+      try {
+        session = await createSessionMutation.mutateAsync({
+          title: `Task: ${task.title}`,
+        })
+      } catch (firstError: unknown) {
+        const isUnauthorized =
+          firstError && typeof firstError === 'object' && 'data' in firstError &&
+          (firstError as { data?: { code?: string } }).data?.code === 'UNAUTHORIZED'
+        if (isUnauthorized) {
+          await new Promise(r => setTimeout(r, 800))
+          session = await createSessionMutation.mutateAsync({
+            title: `Task: ${task.title}`,
+          })
+        } else {
+          throw firstError
+        }
+      }
+
       // Update task progress with the chat session ID
       await updateProgressMutation.mutateAsync({
         taskId: task.id,

@@ -331,41 +331,57 @@ export default function ChatBox({ sessionId, taskId, onSessionCreated, onTaskCom
     // Scroll to bottom when adding optimistic message
     setTimeout(() => scrollToBottom(), 50)
 
+    const sendPayload = {
+      message: messageToSend,
+      sessionId,
+      taskId: effectiveTaskId ?? undefined
+    }
+
     try {
-      const result = await sendMessageMutation.mutateAsync({ 
-        message: messageToSend,
-        sessionId,
-        taskId: effectiveTaskId ?? undefined
-      })
-      
+      let result: Awaited<ReturnType<typeof sendMessageMutation.mutateAsync>>
+      try {
+        result = await sendMessageMutation.mutateAsync(sendPayload)
+      } catch (firstError: unknown) {
+        const isUnauthorized =
+          firstError && typeof firstError === 'object' && 'data' in firstError &&
+          (firstError as { data?: { code?: string } }).data?.code === 'UNAUTHORIZED'
+        if (isUnauthorized) {
+          await fetch('/api/check-user-exists', { credentials: 'include' })
+          await new Promise(r => setTimeout(r, 800))
+          result = await sendMessageMutation.mutateAsync(sendPayload)
+        } else {
+          throw firstError
+        }
+      }
+
       // If a new session was created, notify parent component
       if (result.sessionId && onSessionCreated) {
         onSessionCreated(result.sessionId)
       }
-      
+
       // Refresh messages to show the complete conversation
       await refetchMessages()
-      
+
       // Clear optimistic messages after a short delay to ensure smooth transition
       setTimeout(() => {
         setOptimisticMessages([])
       }, 100)
-      
+
       // Scroll to bottom after new message
       setTimeout(() => scrollToBottom(), 100)
     } catch (error) {
       clientLogger.error('Error sending message:', error)
-      
+
       const errorMessage = getErrorMessage(error)
       const shouldShowRefreshHint = requiresRefresh(error)
-      
+
       // Show error with refresh hint if needed
       if (shouldShowRefreshHint) {
         toast.error(errorMessage + ' Please refresh the page to continue with onboarding.', { duration: 5000 })
       } else {
         toast.error(errorMessage)
       }
-      
+
       // Remove the optimistic message on error
       setOptimisticMessages(prev => prev.filter(msg => msg.id !== userMessage.id))
     }
