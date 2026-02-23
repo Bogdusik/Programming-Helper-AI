@@ -26,12 +26,18 @@ const handler = async (req: Request) => {
         return {}
       },
       onError: ({ path, error }) => {
-        // Log errors for debugging
-        logger.error(`tRPC error on ${path}`, undefined, {
-          code: error.code,
-          message: error.message,
-          cause: error.cause,
-        })
+        // Don't log expected auth errors for procedures often called before user is registered
+        // or when session isn't ready (e.g. multiple tabs, redirects) — avoids noise in System Monitoring
+        const isExpectedAuthError =
+          (error.code === 'UNAUTHORIZED' || error.code === 'FORBIDDEN') &&
+          (path === 'profile.getProfile' || path === 'onboarding.getOnboardingStatus')
+        if (!isExpectedAuthError) {
+          logger.error(`tRPC error on ${path}`, undefined, {
+            code: error.code,
+            message: error.message,
+            cause: error.cause,
+          })
+        }
       },
     })
   } catch (error) {
