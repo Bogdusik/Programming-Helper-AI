@@ -2335,27 +2335,12 @@ function UserComparisonTab({
       toast.error('Failed to copy User ID')
     }
   }
-  if (isLoading) {
-    return (
-      <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-400 mx-auto"></div>
-        <p className="mt-4 text-white/70">Loading user comparison data...</p>
-      </div>
-    )
-  }
-
-  if (!data || !data.comparisons || data.comparisons.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-white/70">No user comparison data available</p>
-        <p className="text-white/50 text-sm mt-2">Users need to complete both pre and post assessments</p>
-      </div>
-    )
-  }
+  const hasData = data && data.comparisons && data.comparisons.length > 0
+  const hasFiltersApplied = language !== '' || minImprovement !== '' || maxImprovement !== ''
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
+      {/* Filters - always visible */}
       <div className="bg-white/5 rounded-lg p-4 border border-white/10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -2395,70 +2380,97 @@ function UserComparisonTab({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white/5 rounded-lg border border-white/10 overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-white/5">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase">User ID</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase">Pre Score</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase">Post Score</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase">Improvement</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase">Confidence</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase">Days</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase">Language</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/10">
-            {data.comparisons.map((comp, idx) => (
-              <tr key={idx} className="hover:bg-white/5">
-                <td className="px-4 py-3 text-sm">
-                  <div className="flex items-center gap-2 group relative">
-                    <span className="text-white font-mono cursor-default">{comp.userId.slice(0, 8)}...</span>
-                    <button
-                      onClick={() => handleCopyUserId(comp.userId)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/10 rounded flex-shrink-0"
-                      title="Copy full User ID"
-                      aria-label="Copy User ID"
-                    >
-                      <svg className="w-4 h-4 text-white/70 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                    {copiedUserId === comp.userId && (
-                      <span className="absolute left-0 top-full mt-1 px-2 py-1 bg-green-500 text-white text-xs rounded whitespace-nowrap z-20 shadow-lg">
-                        Copied!
-                      </span>
-                    )}
-                    <div className="absolute left-0 bottom-full mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-lg border border-white/20">
-                      {comp.userId}
-                      <div className="absolute left-2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-sm text-white">{comp.preScore}/{comp.preTotal} ({comp.prePercentage}%)</td>
-                <td className="px-4 py-3 text-sm text-white">{comp.postScore}/{comp.postTotal} ({comp.postPercentage}%)</td>
-                <td className={`px-4 py-3 text-sm font-semibold ${comp.improvement >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {comp.improvement >= 0 ? '+' : ''}{comp.improvement}%
-                </td>
-                <td className="px-4 py-3 text-sm text-white">
-                  {comp.preConfidence} → {comp.postConfidence}
-                  {comp.confidenceChange !== 0 && (
-                    <span className={`ml-1 ${comp.confidenceChange > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      ({comp.confidenceChange > 0 ? '+' : ''}{comp.confidenceChange})
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-sm text-white/70">{comp.daysBetween} days</td>
-                <td className="px-4 py-3 text-sm text-white capitalize">{comp.language || 'N/A'}</td>
+      {/* Loading state */}
+      {isLoading && (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-400 mx-auto"></div>
+          <p className="mt-4 text-white/70">Loading user comparison data...</p>
+        </div>
+      )}
+
+      {/* Table - always visible, shows empty state if no data */}
+      {!isLoading && (
+        <div className="bg-white/5 rounded-lg border border-white/10 overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-white/5">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase">User ID</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase">Pre Score</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase">Post Score</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase">Improvement</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase">Confidence</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase">Days</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/70 uppercase">Language</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-white/10">
+              {hasData ? (
+                data.comparisons.map((comp, idx) => (
+                  <tr key={idx} className="hover:bg-white/5">
+                    <td className="px-4 py-3 text-sm">
+                      <div className="flex items-center gap-2 group relative">
+                        <span className="text-white font-mono cursor-default">{comp.userId.slice(0, 8)}...</span>
+                        <button
+                          onClick={() => handleCopyUserId(comp.userId)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/10 rounded flex-shrink-0"
+                          title="Copy full User ID"
+                          aria-label="Copy User ID"
+                        >
+                          <svg className="w-4 h-4 text-white/70 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                        {copiedUserId === comp.userId && (
+                          <span className="absolute left-0 top-full mt-1 px-2 py-1 bg-green-500 text-white text-xs rounded whitespace-nowrap z-20 shadow-lg">
+                            Copied!
+                          </span>
+                        )}
+                        <div className="absolute left-0 bottom-full mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-lg border border-white/20">
+                          {comp.userId}
+                          <div className="absolute left-2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-white">{comp.preScore}/{comp.preTotal} ({comp.prePercentage}%)</td>
+                    <td className="px-4 py-3 text-sm text-white">{comp.postScore}/{comp.postTotal} ({comp.postPercentage}%)</td>
+                    <td className={`px-4 py-3 text-sm font-semibold ${comp.improvement >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {comp.improvement >= 0 ? '+' : ''}{comp.improvement}%
+                    </td>
+                    <td className="px-4 py-3 text-sm text-white">
+                      {comp.preConfidence} → {comp.postConfidence}
+                      {comp.confidenceChange !== 0 && (
+                        <span className={`ml-1 ${comp.confidenceChange > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          ({comp.confidenceChange > 0 ? '+' : ''}{comp.confidenceChange})
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-white/70">{comp.daysBetween} days</td>
+                    <td className="px-4 py-3 text-sm text-white capitalize">{comp.language || 'N/A'}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-4 py-12 text-center">
+                    <p className="text-white/70">
+                      {hasFiltersApplied 
+                        ? 'No users match the current filters' 
+                        : 'No user comparison data available'}
+                    </p>
+                    <p className="text-white/50 text-sm mt-2">
+                      {hasFiltersApplied 
+                        ? 'Try adjusting your filter criteria' 
+                        : 'Users need to complete both pre and post assessments'}
+                    </p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Pagination */}
-      {data.pagination && data.pagination.totalPages > 1 && (
+      {data?.pagination && data.pagination.totalPages > 1 && (
         <div className="flex justify-between items-center">
           <button
             onClick={() => onPageChange(page - 1)}
