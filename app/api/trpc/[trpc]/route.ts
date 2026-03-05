@@ -30,7 +30,7 @@ const handler = async (req: Request) => {
         // or when session isn't ready (e.g. multiple tabs, redirects) — avoids noise in System Monitoring
         const isExpectedAuthError =
           (error.code === 'UNAUTHORIZED' || error.code === 'FORBIDDEN') &&
-          (path === 'profile.getProfile' || path === 'onboarding.getOnboardingStatus')
+          (path === 'profile.getProfile' || path === 'onboarding.getOnboardingStatus' || path === 'profile.updateProfile')
         if (!isExpectedAuthError) {
           logger.error(`tRPC error on ${path}`, undefined, {
             code: error.code,

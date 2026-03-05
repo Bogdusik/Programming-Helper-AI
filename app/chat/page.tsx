@@ -433,24 +433,40 @@ function ChatPageContent() {
   }
   
   const handleProfileComplete = async (data: ProfileData) => {
+    const payload = {
+      experience: data.experience,
+      focusAreas: data.focusAreas,
+      confidence: data.confidence,
+      aiExperience: data.aiExperience,
+      preferredLanguages: data.preferredLanguages,
+      primaryLanguage: data.primaryLanguage,
+    }
     try {
-      await updateProfileMutation.mutateAsync({
-        experience: data.experience,
-        focusAreas: data.focusAreas,
-        confidence: data.confidence,
-        aiExperience: data.aiExperience,
-        preferredLanguages: data.preferredLanguages,
-        primaryLanguage: data.primaryLanguage,
-      })
+      await updateProfileMutation.mutateAsync(payload)
       setShowProfileModal(false)
-      
-      // Invalidate and refetch profile to get updated data
       await utils.profile.getProfile.invalidate()
       await refetchProfile()
-      
-      // Pre-assessment will be shown automatically via useEffect
-    } catch (error) {
+    } catch (error: unknown) {
+      const errData = error != null && typeof error === 'object' && 'data' in error
+        ? (error as { data?: { httpStatus?: number; code?: string } }).data
+        : undefined
+      const is401 = errData?.httpStatus === 401 || errData?.code === 'UNAUTHORIZED'
+      if (is401) {
+        await new Promise(r => setTimeout(r, 1200))
+        try {
+          await updateProfileMutation.mutateAsync(payload)
+          setShowProfileModal(false)
+          await utils.profile.getProfile.invalidate()
+          await refetchProfile()
+          return
+        } catch (retryError) {
+          clientLogger.error('Error updating profile (after retry):', retryError)
+          toast.error('Session not ready. Please try again.')
+          return
+        }
+      }
       clientLogger.error('Error updating profile:', error)
+      toast.error('Failed to save profile. Please try again.')
     }
   }
 
