@@ -28,12 +28,18 @@ const handler = async (req: Request) => {
       onError: ({ path, error }) => {
         // Don't log expected auth errors for procedures often called before user is registered
         // or when session isn't ready (e.g. multiple tabs, redirects) — avoids noise in System Monitoring
+        const authNoisePaths = [
+          'profile.getProfile',
+          'onboarding.getOnboardingStatus',
+          'profile.updateProfile',
+          'assessment.submitAssessment',
+          'chat.getMessages',
+          'chat.getSessions',
+          'task.getTaskProgress',
+        ]
         const isExpectedAuthError =
           (error.code === 'UNAUTHORIZED' || error.code === 'FORBIDDEN') &&
-          (path === 'profile.getProfile'
-            || path === 'onboarding.getOnboardingStatus'
-            || path === 'profile.updateProfile'
-            || path === 'assessment.submitAssessment')
+          (path && authNoisePaths.some((p) => path.includes(p)))
         if (!isExpectedAuthError) {
           logger.error(`tRPC error on ${path}`, undefined, {
             code: error.code,

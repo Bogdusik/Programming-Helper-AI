@@ -62,9 +62,11 @@ export default function TRPCProvider({ children }: { children: React.ReactNode }
             if (isAuthError(errorData.code, errorData.httpStatus)) {
               if (isBlockedError(errorData.code, errorData.message)) {
                 handleBlockedUser()
-              } else {
-                handleInvalidSession()
+                return false
               }
+              // Retry UNAUTHORIZED up to 2 times (session race after submit/redirect), then treat as invalid
+              if (failureCount < 2) return true
+              handleInvalidSession()
               return false
             }
             // Retry "Not Found" errors up to 2 times with delay (user might be creating)
@@ -90,9 +92,10 @@ export default function TRPCProvider({ children }: { children: React.ReactNode }
             if (isAuthError(trpcError.code)) {
               if (isBlockedError(trpcError.code, trpcError.message)) {
                 handleBlockedUser()
-              } else {
-                handleInvalidSession()
+                return false
               }
+              if (failureCount < 2) return true
+              handleInvalidSession()
               return false
             }
             // Retry INTERNAL_SERVER_ERROR with "Not Found" message
