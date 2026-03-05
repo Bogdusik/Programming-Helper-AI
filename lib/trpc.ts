@@ -24,23 +24,16 @@ export const publicProcedure = t.procedure
  */
 const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   let user: Awaited<ReturnType<typeof getCurrentUser>> = null
-  try {
-    user = await getCurrentUser()
-  } catch (e) {
-    if (e instanceof TRPCError && e.code === 'UNAUTHORIZED') {
-      await new Promise(r => setTimeout(r, 600))
-      try {
-        user = await getCurrentUser()
-      } catch {
-        throw e
-      }
-    } else {
+  const delays = [0, 600, 1200] // ms: immediate, then retry after 600ms, then after 1200ms (session race on Vercel)
+  for (let i = 0; i < delays.length; i++) {
+    if (delays[i] > 0) await new Promise(r => setTimeout(r, delays[i]))
+    try {
+      user = await getCurrentUser()
+      if (user) break
+    } catch (e) {
+      if (e instanceof TRPCError && e.code === 'UNAUTHORIZED' && i < delays.length - 1) continue
       throw e
     }
-  }
-  if (!user) {
-    await new Promise(r => setTimeout(r, 600))
-    user = await getCurrentUser()
   }
   if (!user) {
     throw new TRPCError({ code: 'UNAUTHORIZED' })
