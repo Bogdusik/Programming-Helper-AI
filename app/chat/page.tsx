@@ -475,23 +475,42 @@ function ChatPageContent() {
     answer: string
     isCorrect?: boolean
   }>, confidence: number) => {
+    const payload = {
+      type: 'pre' as const,
+      language: userProfile?.primaryLanguage || undefined,
+      answers: answers.map(a => ({
+        questionId: a.questionId,
+        answer: a.answer,
+        isCorrect: a.isCorrect,
+      })),
+      confidence,
+    }
     try {
-      await submitAssessmentMutation.mutateAsync({
-        type: 'pre',
-        language: userProfile?.primaryLanguage || undefined,
-        answers: answers.map(a => ({
-          questionId: a.questionId,
-          answer: a.answer,
-          isCorrect: a.isCorrect,
-        })),
-        confidence,
-      })
+      await submitAssessmentMutation.mutateAsync(payload)
       setShowPreAssessment(false)
       // Refetch assessment to get updated data
       await refetchAssessment()
       // Onboarding tour will be shown automatically via useEffect
-    } catch (error) {
+    } catch (error: unknown) {
+      const errData = error != null && typeof error === 'object' && 'data' in error
+        ? (error as { data?: { httpStatus?: number; code?: string } }).data
+        : undefined
+      const is401 = errData?.httpStatus === 401 || errData?.code === 'UNAUTHORIZED'
+      if (is401) {
+        await new Promise(r => setTimeout(r, 1200))
+        try {
+          await submitAssessmentMutation.mutateAsync(payload)
+          setShowPreAssessment(false)
+          await refetchAssessment()
+          return
+        } catch (retryError) {
+          clientLogger.error('Error submitting assessment (after retry):', retryError)
+          toast.error('Session not ready. Please try again.')
+          return
+        }
+      }
       clientLogger.error('Error submitting assessment:', error)
+      toast.error('Failed to submit assessment. Please try again.')
     }
   }
 
