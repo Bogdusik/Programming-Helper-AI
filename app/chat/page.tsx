@@ -677,6 +677,7 @@ function ChatPageContent() {
             type="pre"
             questions={assessmentQuestions}
             language={userProfile?.primaryLanguage ?? undefined}
+            isSubmitting={submitAssessmentMutation.isPending}
           />
         </Suspense>
       )}
