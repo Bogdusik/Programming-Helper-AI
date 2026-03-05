@@ -146,7 +146,7 @@ export default function AssessmentModal({
           </div>
         </div>
 
-        <div className={`flex-1 flex flex-col overflow-hidden ${needsCodeEditor ? 'p-0' : 'p-6'}`}>
+        <div className={`flex-1 flex flex-col min-h-0 overflow-y-auto ${needsCodeEditor ? 'p-0' : 'p-6'}`}>
           {needsCodeEditor ? (
             // Split view for code/conceptual questions
             <div className="flex-1 flex flex-col">
@@ -243,7 +243,7 @@ export default function AssessmentModal({
             </div>
           )}
 
-          <div className={`flex items-center justify-between pt-4 border-t border-gray-200 ${needsCodeEditor ? 'px-6' : ''}`}>
+          <div className={`flex-shrink-0 flex items-center justify-between pt-4 pb-2 border-t border-gray-200 bg-white ${needsCodeEditor ? 'px-6' : ''}`}>
             <button
               type="button"
               onClick={handlePrevious}
@@ -265,6 +265,7 @@ export default function AssessmentModal({
                 onClick={() => void handleNext()}
                 disabled={!canProceed || isSubmitting}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label={currentQuestion === questions.length - 1 ? 'Submit assessment' : 'Next question'}
               >
                 {isSubmitting
                   ? 'Submitting...'
