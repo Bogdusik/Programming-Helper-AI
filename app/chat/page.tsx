@@ -516,47 +516,71 @@ function ChatPageContent() {
 
   const handleOnboardingComplete = async () => {
     setShowOnboarding(false)
+    const payload = { completed: true }
     try {
-      // Update status in database FIRST
-      await updateOnboardingMutation.mutateAsync({
-        completed: true,
-      })
-      // Wait a bit to ensure database update is committed
+      await updateOnboardingMutation.mutateAsync(payload)
       await new Promise(resolve => setTimeout(resolve, 100))
-      // Immediately refetch to get updated status
       await refetchOnboarding()
-      // Also invalidate all related caches to ensure fresh data
       await utils.onboarding.getOnboardingStatus.invalidate()
       await utils.profile.getProfile.invalidate()
-      // Force a refetch of profile to ensure consistency
       await refetchProfile()
-    } catch (error) {
+    } catch (error: unknown) {
+      const errData = error != null && typeof error === 'object' && 'data' in error
+        ? (error as { data?: { httpStatus?: number; code?: string } }).data
+        : undefined
+      const is401 = errData?.httpStatus === 401 || errData?.code === 'UNAUTHORIZED'
+      if (is401) {
+        await new Promise(r => setTimeout(r, 1200))
+        try {
+          await updateOnboardingMutation.mutateAsync(payload)
+          await refetchOnboarding()
+          await utils.onboarding.getOnboardingStatus.invalidate()
+          await utils.profile.getProfile.invalidate()
+          await refetchProfile()
+          return
+        } catch (retryError) {
+          clientLogger.error('Error completing onboarding (after retry):', retryError)
+          toast.error('Session not ready. Please try again.')
+          return
+        }
+      }
       clientLogger.error('Error completing onboarding:', error)
-      // Even on error, hide the modal to prevent infinite loop
-      setShowOnboarding(false)
+      toast.error('Failed to save. Please try again.')
     }
   }
 
   const handleOnboardingSkip = async () => {
     setShowOnboarding(false)
+    const payload = { completed: true }
     try {
-      // Update status in database FIRST
-      await updateOnboardingMutation.mutateAsync({
-        completed: true,
-      })
-      // Wait a bit to ensure database update is committed
+      await updateOnboardingMutation.mutateAsync(payload)
       await new Promise(resolve => setTimeout(resolve, 100))
-      // Immediately refetch to get updated status
       await refetchOnboarding()
-      // Also invalidate all related caches to ensure fresh data
       await utils.onboarding.getOnboardingStatus.invalidate()
       await utils.profile.getProfile.invalidate()
-      // Force a refetch of profile to ensure consistency
       await refetchProfile()
-    } catch (error) {
+    } catch (error: unknown) {
+      const errData = error != null && typeof error === 'object' && 'data' in error
+        ? (error as { data?: { httpStatus?: number; code?: string } }).data
+        : undefined
+      const is401 = errData?.httpStatus === 401 || errData?.code === 'UNAUTHORIZED'
+      if (is401) {
+        await new Promise(r => setTimeout(r, 1200))
+        try {
+          await updateOnboardingMutation.mutateAsync(payload)
+          await refetchOnboarding()
+          await utils.onboarding.getOnboardingStatus.invalidate()
+          await utils.profile.getProfile.invalidate()
+          await refetchProfile()
+          return
+        } catch (retryError) {
+          clientLogger.error('Error skipping onboarding (after retry):', retryError)
+          toast.error('Session not ready. Please try again.')
+          return
+        }
+      }
       clientLogger.error('Error skipping onboarding:', error)
-      // Even on error, hide the modal to prevent infinite loop
-      setShowOnboarding(false)
+      toast.error('Failed to save. Please try again.')
     }
   }
 
