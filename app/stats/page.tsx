@@ -108,21 +108,40 @@ export default function StatsPage() {
   }
 
   const handleAssessmentSubmit = async (answers: Array<{ questionId: string; answer: string; isCorrect?: boolean }>, confidence: number) => {
+    const payload = {
+      type: 'post' as const,
+      language: userProfile?.primaryLanguage || undefined,
+      answers: answers.map(a => ({
+        questionId: a.questionId,
+        answer: a.answer,
+        isCorrect: a.isCorrect,
+      })),
+      confidence,
+    }
     try {
-      await submitAssessmentMutation.mutateAsync({
-        type: 'post',
-        language: userProfile?.primaryLanguage || undefined,
-        answers: answers.map(a => ({
-          questionId: a.questionId,
-          answer: a.answer,
-          isCorrect: a.isCorrect,
-        })),
-        confidence,
-      })
+      await submitAssessmentMutation.mutateAsync(payload)
       setShowPostAssessment(false)
       toast.success('Post-assessment submitted successfully!')
       window.location.reload()
-    } catch (error) {
+    } catch (error: unknown) {
+      const errData = error != null && typeof error === 'object' && 'data' in error
+        ? (error as { data?: { httpStatus?: number; code?: string } }).data
+        : undefined
+      const is401 = errData?.httpStatus === 401 || errData?.code === 'UNAUTHORIZED'
+      if (is401) {
+        await new Promise(r => setTimeout(r, 1200))
+        try {
+          await submitAssessmentMutation.mutateAsync(payload)
+          setShowPostAssessment(false)
+          toast.success('Post-assessment submitted successfully!')
+          window.location.reload()
+          return
+        } catch (retryError) {
+          clientLogger.error('Error submitting assessment (after retry):', retryError)
+          toast.error('Session not ready. Please try again.')
+          return
+        }
+      }
       clientLogger.error('Error submitting assessment:', error)
       const message = error instanceof Error ? error.message : 'Failed to submit. Please try again.'
       toast.error(message)
