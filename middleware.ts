@@ -47,13 +47,18 @@ export default clerkMiddleware(async (auth, req) => {
       const { userId } = await auth()
       
       if (!userId) {
+        const requestUrl = new URL(req.url)
+        // Post sign-up: Clerk redirects to /chat?fromSignUp=true but session may not be in first request yet
+        if (requestUrl.pathname === '/chat' && requestUrl.searchParams.get('fromSignUp') === 'true') {
+          return NextResponse.next()
+        }
         // RSC/prefetch requests during client-side navigation often get auth() null
         // (Clerk known issue). Allow them through so switching chats doesn't redirect to sign-in.
         const isRscOrPrefetch =
           req.headers.get('RSC') === '1' ||
           req.headers.get('Next-Router-Prefetch') === '1'
         const referer = req.headers.get('Referer')
-        const requestOrigin = new URL(req.url).origin
+        const requestOrigin = requestUrl.origin
         const isSameOriginNav = referer?.startsWith(requestOrigin)
         if (isRscOrPrefetch && isSameOriginNav) {
           return NextResponse.next()
