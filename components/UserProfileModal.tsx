@@ -91,11 +91,22 @@ export default function UserProfileModal({ isOpen, onClose, onComplete, isOption
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (step < 3) {
+      if (step === 1 && !formData.experience) {
+        toast.error('Please select your experience level')
+        return
+      }
+      if (step === 2 && !formData.aiExperience) {
+        toast.error('Please select your AI assistant experience')
+        return
+      }
       setStep(step + 1)
     } else {
-      // Validate required fields
       if (!formData.experience || !formData.aiExperience || formData.preferredLanguages.length === 0) {
-        toast.error('Please complete all required fields')
+        const missing: string[] = []
+        if (!formData.experience) missing.push('experience level')
+        if (!formData.aiExperience) missing.push('AI experience')
+        if (formData.preferredLanguages.length === 0) missing.push('at least one language')
+        toast.error(`Please complete: ${missing.join(', ')}`)
         return
       }
       onComplete(formData)
