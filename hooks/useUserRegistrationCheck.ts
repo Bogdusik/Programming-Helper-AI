@@ -34,13 +34,12 @@ export function useUserRegistrationCheck() {
         if (fromSignUp) {
           try {
             await fetch('/api/create-user')
-            // Remove the parameter from URL
+            // Clean URL without router.replace to avoid triggering a request and middleware redirect
             if (typeof window !== 'undefined') {
-              const newUrl = new URL(window.location.href)
-              newUrl.searchParams.delete('fromSignUp')
-              const nextUrl = newUrl.pathname + newUrl.search
-              window.history.replaceState(null, '', nextUrl)
-              router.replace(nextUrl)
+              const u = new URL(window.location.href)
+              u.searchParams.delete('fromSignUp')
+              const cleanUrl = u.pathname + (u.search || '')
+              window.history.replaceState(null, '', cleanUrl)
             }
           } catch (error) {
             clientLogger.error('Error creating user after sign-up:', error)

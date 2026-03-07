@@ -2,7 +2,7 @@
 
 import { useUser } from '@clerk/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, useMemo, lazy, Suspense } from 'react'
+import { useEffect, useState, useMemo, useRef, lazy, Suspense } from 'react'
 import Navbar from '../../components/Navbar'
 import ChatBox from '../../components/ChatBox'
 import ChatSidebar from '../../components/ChatSidebar'
@@ -288,12 +288,23 @@ function ChatPageContent() {
     }
   }, [isLoaded, isSignedIn, user?.id])
 
+  // Avoid redirect on brief isSignedIn flicker (Clerk token refresh) to prevent sign-in popup loop
+  const signedOutAtRef = useRef<number | null>(null)
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
-      router.push('/')
+      const now = Date.now()
+      if (signedOutAtRef.current === null) signedOutAtRef.current = now
+      const elapsed = now - (signedOutAtRef.current ?? now)
+      if (elapsed > 1500) {
+        router.push('/')
+        signedOutAtRef.current = null
+      }
       return
     }
-    
+    signedOutAtRef.current = null
+  }, [isLoaded, isSignedIn, router])
+
+  useEffect(() => {
     // Check if user is blocked - redirect immediately
     if (isBlocked) {
       router.replace('/blocked')
