@@ -496,32 +496,43 @@ function ChatPageContent() {
       })),
       confidence,
     }
-    try {
-      await submitAssessmentMutation.mutateAsync(payload)
-      setShowPreAssessment(false)
-      // Refetch assessment to get updated data
-      await refetchAssessment()
-      // Onboarding tour will be shown automatically via useEffect
-    } catch (error: unknown) {
-      const errData = error != null && typeof error === 'object' && 'data' in error
-        ? (error as { data?: { httpStatus?: number; code?: string } }).data
-        : undefined
-      const is401 = errData?.httpStatus === 401 || errData?.code === 'UNAUTHORIZED'
-      if (is401) {
-        await new Promise(r => setTimeout(r, 1200))
-        try {
-          await submitAssessmentMutation.mutateAsync(payload)
-          setShowPreAssessment(false)
-          await refetchAssessment()
-          return
-        } catch (retryError) {
-          clientLogger.error('Error submitting assessment (after retry):', retryError)
-          toast.error('Session not ready. Please try again.')
-          return
+
+    const maxAttempts = 3
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await submitAssessmentMutation.mutateAsync(payload)
+        setShowPreAssessment(false)
+        await refetchAssessment()
+        // Onboarding tour will be shown automatically via useEffect
+        return
+      } catch (error: unknown) {
+        const errData = error != null && typeof error === 'object' && 'data' in error
+          ? (error as { data?: { httpStatus?: number; code?: string } }).data
+          : undefined
+        const is401 = errData?.httpStatus === 401 || errData?.code === 'UNAUTHORIZED'
+        const isServerError = errData?.httpStatus && errData.httpStatus >= 500
+        const isTimeout = errData?.code === 'TIMEOUT'
+
+        const shouldRetry = attempt < maxAttempts && (is401 || isServerError || isTimeout)
+        if (shouldRetry) {
+          // Small backoff so that Clerk/DB/OpenAI can recover
+          await new Promise(r => setTimeout(r, 600 * attempt))
+          continue
         }
+
+        if (attempt > 1) {
+          clientLogger.error('Error submitting assessment (after retries):', error)
+        } else {
+          clientLogger.error('Error submitting assessment:', error)
+        }
+
+        if (is401 || isTimeout || isServerError) {
+          toast.error('Session or server not ready. Please refresh the page and try again.')
+        } else {
+          toast.error('Failed to submit assessment. Please try again.')
+        }
+        return
       }
-      clientLogger.error('Error submitting assessment:', error)
-      toast.error('Failed to submit assessment. Please try again.')
     }
   }
 
