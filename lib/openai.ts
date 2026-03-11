@@ -5,8 +5,6 @@ import { isProgrammingRelated, getRejectionMessage } from './programming-validat
 import { logger } from './logger'
 import { db } from './db'
 
-// OpenAI API Configuration Constants
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const OPENAI_TIMEOUT_MS = 30000 // 30 seconds timeout
 const OPENAI_MAX_TOKENS_RESPONSE = 1000 // Max tokens for chat responses
 const OPENAI_MAX_TOKENS_ANALYSIS = 20 // Max tokens for analysis (title, question type)
@@ -17,7 +15,7 @@ const CONVERSATION_HISTORY_LIMIT = 20 // Maximum number of messages in history
 // How long to keep cached responses (in milliseconds) - 7 days
 const OPENAI_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
-if (!OPENAI_API_KEY) {
+if (!process.env.OPENAI_API_KEY) {
   logger.error('OPENAI_API_KEY is not set', undefined, {
     environment: process.env.NODE_ENV
   })
@@ -30,11 +28,12 @@ if (!OPENAI_API_KEY) {
  * @throws Error if API key is not configured
  */
 function getOpenAIClient(): OpenAI {
-  if (!OPENAI_API_KEY) {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) {
     throw new Error('OpenAI API key is not configured')
   }
   return new OpenAI({
-    apiKey: OPENAI_API_KEY,
+    apiKey,
     timeout: OPENAI_TIMEOUT_MS,
   })
 }
@@ -62,7 +61,7 @@ export async function generateResponse(
   conversationHistory?: Array<{ role: 'user' | 'assistant', content: string }>,
   taskContext?: { title: string; description: string; language: string; difficulty: string; hints?: string[] } | null
 ): Promise<string> {
-  if (!OPENAI_API_KEY) {
+  if (!process.env.OPENAI_API_KEY) {
     logger.error('OpenAI API key not configured')
     throw new Error('OpenAI service is not configured')
   }
@@ -255,7 +254,7 @@ The goal is LEARNING. Only give the full code after several back-and-forth quest
  * @returns Category name (e.g., 'Code Debugging', 'Algorithm Help', etc.)
  */
 export async function analyzeQuestionType(message: string): Promise<string> {
-  if (!OPENAI_API_KEY) {
+  if (!process.env.OPENAI_API_KEY) {
     return 'General Programming'
   }
 
@@ -301,7 +300,7 @@ export async function checkAssessmentAnswer(
   correctAnswer: string,
   questionType: 'multiple_choice' | 'code_snippet' | 'conceptual'
 ): Promise<boolean> {
-  if (!OPENAI_API_KEY) {
+  if (!process.env.OPENAI_API_KEY) {
     // Fallback to exact match if API key not available
     return userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase()
   }
@@ -360,7 +359,7 @@ Is the student's answer correct? Answer only "true" or "false".`
  * @returns Generated title (max 50 characters, fallback to truncated message)
  */
 export async function generateChatTitle(message: string): Promise<string> {
-  if (!OPENAI_API_KEY) {
+  if (!process.env.OPENAI_API_KEY) {
     return message.length > 50 ? message.substring(0, 50) + "..." : message
   }
 

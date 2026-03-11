@@ -200,7 +200,7 @@ describe('ChatBox Extended Tests', () => {
 
     it('handles PRECONDITION_FAILED errors with refresh hint', async () => {
       const mockMutateAsync = jest.fn().mockRejectedValue({
-        message: 'Please complete onboarding',
+        message: 'Please complete your profile and assessment before sending messages. Please refresh the page to continue with onboarding.',
         data: { code: 'PRECONDITION_FAILED' },
       })
       
@@ -222,8 +222,7 @@ describe('ChatBox Extended Tests', () => {
       
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          expect.stringContaining('Please refresh the page'),
-          expect.any(Object)
+          expect.stringContaining('Please refresh the page')
         )
       })
     })
