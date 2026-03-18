@@ -39,10 +39,6 @@ export default function RootLayout({
     <ClerkProvider
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
-      afterSignInUrl="/chat"
-      afterSignUpUrl="/chat?fromSignUp=true"
-      signInFallbackRedirectUrl="/chat"
-      signUpFallbackRedirectUrl="/chat?fromSignUp=true"
     >
       <html lang="en">
         <body
