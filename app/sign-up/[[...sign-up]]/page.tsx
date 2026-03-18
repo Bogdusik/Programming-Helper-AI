@@ -13,6 +13,8 @@ export default function SignUpPage() {
           <SignUp 
             routing="path"
             path="/sign-up"
+            forceRedirectUrl="/chat?fromSignUp=true"
+            fallbackRedirectUrl="/chat?fromSignUp=true"
           />
         </div>
       </div>
