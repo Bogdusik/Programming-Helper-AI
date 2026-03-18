@@ -9,7 +9,13 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
  * Suppresses console errors from failed fetch requests
  */
 export default function SafeAnalytics() {
+  // Optional: allow disabling Vercel Analytics/SpeedInsights to avoid console noise
+  // (e.g., when ad blockers block the scripts in production).
+  const enabled = process.env.NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS === 'true';
+
   useEffect(() => {
+    if (!enabled) return;
+
     // Suppress fetch errors from Vercel Analytics
     const originalFetch = window.fetch;
     // eslint-disable-next-line no-console
@@ -132,7 +138,9 @@ export default function SafeAnalytics() {
       window.removeEventListener('error', handleResourceError, true);
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
-  }, []);
+  }, [enabled]);
+
+  if (!enabled) return null;
 
   return (
     <>
