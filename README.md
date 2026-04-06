@@ -4,10 +4,23 @@ An AI-powered programming assistant designed for academic research on AI-assiste
 
 ## Demo
 
-![Chat Interface](screenshots/chat.png)
-![Code Analysis](screenshots/code-analysis.png)
-![Learning Dashboard](screenshots/dashboard.png)
-![Statistics](screenshots/statistics.png)
+Screenshots of the main screens (paths match files in [`screenshots/`](screenshots/)).
+
+### Chat
+
+![Chat — AI assistant conversation and code help](screenshots/chat.png)
+
+### Code analysis
+
+![Code analysis — review, bugs, and suggestions](screenshots/code-analysis.png)
+
+### Learning dashboard
+
+![Learning dashboard — tasks, levels, and progress](screenshots/dashboard.png)
+
+### Statistics
+
+![Statistics — usage and learning metrics](screenshots/statistics.png)
 
 ## Why It's Cool
 
@@ -139,5 +152,9 @@ Programming-Helper-AI/
 - **Database Design**: Designed relational schema with Prisma for users, conversations, tasks, assessments, and analytics
 - **Research Ethics**: Implemented GDPR-compliant data collection with anonymous user identification and research consent mechanisms
 - **Testing Strategies**: Wrote comprehensive tests for React components, API endpoints, and business logic using Jest and React Testing Library
+
+## Contributors
+
+**Bohdan** ([Bogdusik](https://github.com/Bogdusik)) — author and maintainer.
 
 Fork it, use it, improve it - open to PRs!
