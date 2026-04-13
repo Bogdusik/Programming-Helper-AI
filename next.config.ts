@@ -73,13 +73,13 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               // Clerk embeds and some libraries require eval/inline in this app; keep narrow host allowlist.
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://*.clerk.accounts.dev https://*.clerk.dev https://clerk.com https://*.clerk.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com data:",
-              "img-src 'self' data: https: blob:",
+              "img-src 'self' data: blob: https://*.clerk.accounts.dev https://*.clerk.dev https://clerk.com https://*.clerk.com",
               // Clerk telemetry uses clerk-telemetry.com; Vercel analytics uses vercel-insights.com.
-              "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev https://clerk-telemetry.com https://*.clerk-telemetry.com https://api.openai.com https://*.vercel-insights.com",
-              "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com",
+              "connect-src 'self' https://challenges.cloudflare.com https://*.clerk.accounts.dev https://*.clerk.dev https://clerk.com https://*.clerk.com https://clerk-telemetry.com https://*.clerk-telemetry.com https://api.openai.com https://*.vercel-insights.com",
+              "frame-src 'self' https://challenges.cloudflare.com https://*.clerk.accounts.dev https://*.clerk.dev https://clerk.com https://*.clerk.com",
               // Clerk uses a web worker (often via blob:) for some features.
               "worker-src 'self' blob:",
               "object-src 'none'",
