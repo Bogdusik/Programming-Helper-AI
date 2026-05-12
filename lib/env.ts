@@ -6,6 +6,8 @@ import { logger } from './logger'
 const REQUIRED_ENV_VARS = [
   'OPENAI_API_KEY',
   'DATABASE_URL',
+  'CLERK_SECRET_KEY',
+  'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
 ] as const
 
 /**
