@@ -22,9 +22,7 @@ const isBlockedAllowedRoute = createRouteMatcher([
 const isPublicApiRoute = createRouteMatcher([
   '/api/trpc/stats.getGlobalStats(.*)',
   '/api/health(.*)',
-  '/api/check-clerk-env(.*)',
   '/api/clear-session(.*)',
-  '/api/diagnose(.*)',
 ])
 
 export default clerkMiddleware(async (auth, req) => {
