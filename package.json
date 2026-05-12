@@ -21,10 +21,6 @@
     "db:init-rate-limits": "tsx scripts/init-rate-limits.ts",
     "db:migrate-examples-constraints": "tsx scripts/apply-migration.ts",
     "db:studio": "prisma studio",
-    "db:start": "brew services start postgresql@14",
-    "db:stop": "brew services stop postgresql@14",
-    "db:status": "brew services list | grep postgresql || echo 'PostgreSQL service not found'",
-    "db:setup": "npm run db:start && sleep 2 && npm run db:push",
     "prebuild": "npm run db:generate",
     "postinstall": "prisma generate"
   },
