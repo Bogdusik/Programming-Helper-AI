@@ -22,34 +22,6 @@
 						"description": "Check application and database health status"
 					},
 					"response": []
-				},
-				{
-					"name": "Diagnose System",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/diagnose",
-							"host": ["{{base_url}}"],
-							"path": ["api", "diagnose"]
-						},
-						"description": "Get detailed system diagnostics including database connection, environment variables, and user table structure"
-					},
-					"response": []
-				},
-				{
-					"name": "Check Database",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/check-database",
-							"host": ["{{base_url}}"],
-							"path": ["api", "check-database"]
-						},
-						"description": "Check database connection and basic queries"
-					},
-					"response": []
 				}
 			],
 			"description": "Endpoints for checking system health and status"
@@ -87,94 +59,12 @@
 							"host": ["{{base_url}}"],
 							"path": ["api", "create-user"]
 						},
-						"description": "Create a new user (admin endpoint)"
-					},
-					"response": []
-				},
-				{
-					"name": "Check Admin Data",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/check-admin-data",
-							"host": ["{{base_url}}"],
-							"path": ["api", "check-admin-data"]
-						},
-						"description": "Check admin user data and configuration"
-					},
-					"response": []
-				},
-				{
-					"name": "Fix Admin Role",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/fix-admin-role",
-							"host": ["{{base_url}}"],
-							"path": ["api", "fix-admin-role"]
-						},
-						"description": "Fix admin role for users (admin utility endpoint)"
+						"description": "Sync Clerk user to local database on first sign-in. Requires authentication."
 					},
 					"response": []
 				}
 			],
 			"description": "User management and authentication endpoints"
-		},
-		{
-			"name": "Tasks & Data",
-			"item": [
-				{
-					"name": "Seed Tasks",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/seed-tasks",
-							"host": ["{{base_url}}"],
-							"path": ["api", "seed-tasks"]
-						},
-						"description": "Seed programming tasks into the database"
-					},
-					"response": []
-				},
-				{
-					"name": "Final Schema Sync",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/final-schema-sync",
-							"host": ["{{base_url}}"],
-							"path": ["api", "final-schema-sync"]
-						},
-						"description": "Final database schema synchronization"
-					},
-					"response": []
-				}
-			],
-			"description": "Task seeding and database management endpoints"
 		},
 		{
 			"name": "tRPC Endpoints",
@@ -672,4 +562,3 @@
 		}
 	]
 }
-
