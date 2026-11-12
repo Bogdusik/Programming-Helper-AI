@@ -49,3 +49,6 @@ yarn-error.log*
 ._*
 .Spotlight-V100
 .Trashes
+
+# Local test account credentials
+scripts/test-users.json

@@ -68,7 +68,7 @@ async function main() {
     const raw = fs.readFileSync(TEST_USERS_PATH, 'utf-8')
     users = JSON.parse(raw)
   } catch (e) {
-    console.error('Failed to read scripts/test-users.json:', e)
+    console.error('Failed to read scripts/test-users.json. Copy scripts/test-users.example.json to scripts/test-users.json and set real values (the file is gitignored).', e)
     process.exit(1)
   }
   console.log(`Creating ${users.length} users in Clerk...`)
