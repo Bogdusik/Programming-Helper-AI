@@ -73,9 +73,10 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               // Clerk embeds and some libraries require eval/inline in this app; keep narrow host allowlist.
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://*.clerk.accounts.dev https://*.clerk.dev https://clerk.com https://*.clerk.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com data:",
+              // @monaco-editor/react loads Monaco (script, CSS and the codicon font) from cdn.jsdelivr.net.
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://*.clerk.accounts.dev https://*.clerk.dev https://clerk.com https://*.clerk.com https://cdn.jsdelivr.net",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+              "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:",
               "img-src 'self' data: blob: https://*.clerk.accounts.dev https://*.clerk.dev https://clerk.com https://*.clerk.com",
               // Clerk telemetry uses clerk-telemetry.com; Vercel analytics uses vercel-insights.com.
               "connect-src 'self' https://challenges.cloudflare.com https://*.clerk.accounts.dev https://*.clerk.dev https://clerk.com https://*.clerk.com https://clerk-telemetry.com https://*.clerk-telemetry.com https://api.openai.com https://*.vercel-insights.com",
