@@ -39,7 +39,7 @@ function renderText(text: string, isUser: boolean, keyPrefix: string): ReactNode
   const blocks: ReactNode[] = []
   const lines = text.split('\n')
   let paragraph: string[] = []
-  let list: { ordered: boolean; items: string[] } | null = null
+  let list: { ordered: boolean; start: number; nested: boolean; items: string[] } | null = null
 
   const flushParagraph = () => {
     if (paragraph.length === 0) return
@@ -54,10 +54,10 @@ function renderText(text: string, isUser: boolean, keyPrefix: string): ReactNode
   const flushList = () => {
     if (!list) return
     const items = list.items.map((item, i) => <li key={i}>{renderInline(item, isUser)}</li>)
-    const className = `text-sm leading-relaxed space-y-1 pl-5 ${list.ordered ? 'list-decimal' : 'list-disc'}`
+    const className = `text-sm leading-relaxed space-y-1 ${list.nested ? 'pl-10' : 'pl-5'} ${list.ordered ? 'list-decimal' : 'list-disc'}`
     blocks.push(
       list.ordered
-        ? <ol key={`${keyPrefix}-l${blocks.length}`} className={className}>{items}</ol>
+        ? <ol key={`${keyPrefix}-l${blocks.length}`} start={list.start} className={className}>{items}</ol>
         : <ul key={`${keyPrefix}-l${blocks.length}`} className={className}>{items}</ul>
     )
     list = null
@@ -65,8 +65,8 @@ function renderText(text: string, isUser: boolean, keyPrefix: string): ReactNode
 
   for (const line of lines) {
     const heading = /^(#{1,6})\s+(.*)$/.exec(line)
-    const ordered = /^\s*\d+[.)]\s+(.*)$/.exec(line)
-    const bullet = /^\s*[-*]\s+(.*)$/.exec(line)
+    const ordered = /^(\s*)(\d+)[.)]\s+(.*)$/.exec(line)
+    const bullet = /^(\s*)[-*]\s+(.*)$/.exec(line)
 
     if (heading) {
       flushParagraph()
@@ -79,9 +79,11 @@ function renderText(text: string, isUser: boolean, keyPrefix: string): ReactNode
     } else if (ordered || bullet) {
       flushParagraph()
       const isOrdered = Boolean(ordered)
-      if (list && list.ordered !== isOrdered) flushList()
-      if (!list) list = { ordered: isOrdered, items: [] }
-      list.items.push((ordered ?? bullet)![1])
+      // Indented items are sub-points of the item above; models nest bullets under numbered steps.
+      const nested = (ordered ?? bullet)![1].length >= 2
+      if (list && (list.ordered !== isOrdered || list.nested !== nested)) flushList()
+      if (!list) list = { ordered: isOrdered, start: ordered ? Number(ordered[2]) : 1, nested, items: [] }
+      list.items.push(ordered ? ordered[3] : bullet![2])
     } else if (line.trim() === '') {
       flushParagraph()
       flushList()

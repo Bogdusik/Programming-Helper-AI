@@ -113,6 +113,14 @@ describe('Message Component', () => {
       expect(screen.getByText('Split it in half')).toBeInTheDocument()
     })
 
+    it('keeps numbering when a numbered item has nested bullets', () => {
+      const { container } = render('1. **Time**:\n   - O(log n)\n2. **Space**:\n   - O(1)')
+      const lists = container.querySelectorAll('ol')
+      expect(lists).toHaveLength(2)
+      expect(lists[1]).toHaveAttribute('start', '2')
+      expect(container.querySelector('ul')).toHaveClass('pl-10')
+    })
+
     it('renders headings without the hashes', () => {
       const { container } = render('### Time complexity\nIt is logarithmic.')
       expect(container.querySelector('h3, h4, h5, h6')).toHaveTextContent('Time complexity')
