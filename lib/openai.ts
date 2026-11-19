@@ -6,10 +6,14 @@ import { logger } from './logger'
 import { db } from './db'
 
 const OPENAI_TIMEOUT_MS = 30000 // 30 seconds timeout
-const OPENAI_MAX_TOKENS_RESPONSE = 1000 // Max tokens for chat responses
-const OPENAI_MAX_TOKENS_ANALYSIS = 20 // Max tokens for analysis (title, question type)
-const OPENAI_TEMPERATURE_RESPONSE = 0.7 // Temperature for chat responses
-const OPENAI_TEMPERATURE_ANALYSIS = 0.3 // Temperature for analysis tasks
+// gpt-3.5-turbo was shut down on 2026-10-23; OpenAI lists gpt-5.6-terra as its replacement.
+// Set OPENAI_MODEL to use another model without a code change.
+export const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.6-terra'
+// GPT-5 models only accept max_completion_tokens and the default temperature, and spend part of the
+// budget on reasoning, so short tasks (title, question type, grading) still need room to answer.
+const OPENAI_MAX_TOKENS_RESPONSE = 2000 // Max tokens for chat responses
+const OPENAI_MAX_TOKENS_ANALYSIS = 400 // Max tokens for analysis (title, question type)
+const OPENAI_MAX_TOKENS_GRADING = 400 // Max tokens for grading an assessment answer
 const CONVERSATION_HISTORY_LIMIT = 20 // Maximum number of messages in history
 
 // How long to keep cached responses (in milliseconds) - 7 days
@@ -182,10 +186,9 @@ The goal is LEARNING. Only give the full code after several back-and-forth quest
     })
     
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: OPENAI_MODEL,
       messages,
-      max_tokens: OPENAI_MAX_TOKENS_RESPONSE,
-      temperature: OPENAI_TEMPERATURE_RESPONSE,
+      max_completion_tokens: OPENAI_MAX_TOKENS_RESPONSE,
     })
 
     const responseText =
@@ -261,7 +264,7 @@ export async function analyzeQuestionType(message: string): Promise<string> {
   try {
     const openai = getOpenAIClient()
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: OPENAI_MODEL,
       messages: [
         {
           role: "system",
@@ -272,8 +275,7 @@ export async function analyzeQuestionType(message: string): Promise<string> {
           content: `Categorize this programming question: "${message}"`
         }
       ],
-      max_tokens: OPENAI_MAX_TOKENS_ANALYSIS,
-      temperature: OPENAI_TEMPERATURE_ANALYSIS,
+      max_completion_tokens: OPENAI_MAX_TOKENS_ANALYSIS,
     })
 
     const category = completion.choices[0]?.message?.content?.trim() || 'General Programming'
@@ -313,7 +315,7 @@ export async function checkAssessmentAnswer(
   try {
     const openai = getOpenAIClient()
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: OPENAI_MODEL,
       messages: [
         {
           role: "system",
@@ -338,8 +340,7 @@ Student's answer: ${userAnswer}
 Is the student's answer correct? Answer only "true" or "false".`
         }
       ],
-      max_tokens: 10,
-      temperature: 0.1, // Low temperature for consistent evaluation
+      max_completion_tokens: OPENAI_MAX_TOKENS_GRADING,
     })
 
     const result = completion.choices[0]?.message?.content?.trim().toLowerCase()
@@ -366,7 +367,7 @@ export async function generateChatTitle(message: string): Promise<string> {
   try {
     const openai = getOpenAIClient()
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: OPENAI_MODEL,
       messages: [
         {
           role: "system",
@@ -377,8 +378,7 @@ export async function generateChatTitle(message: string): Promise<string> {
           content: `Create a title for this programming question: "${message}"`
         }
       ],
-      max_tokens: OPENAI_MAX_TOKENS_ANALYSIS,
-      temperature: OPENAI_TEMPERATURE_ANALYSIS,
+      max_completion_tokens: OPENAI_MAX_TOKENS_ANALYSIS,
     })
 
     const title = completion.choices[0]?.message?.content?.trim() || 'Programming Question'

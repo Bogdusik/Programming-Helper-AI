@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 import { db } from './db'
 import { getCurrentUser } from './auth'
-import { generateResponse, generateChatTitle, analyzeQuestionType, checkAssessmentAnswer } from './openai'
+import { generateResponse, generateChatTitle, analyzeQuestionType, checkAssessmentAnswer, OPENAI_MODEL } from './openai'
 import { detectLanguage } from './prompts'
 import { rateLimit } from './rate-limit-db'
 import { logger } from './logger'
@@ -1850,7 +1850,7 @@ export const appRouter = router({
         // Return current system settings (can be extended with a settings table)
         return {
           openai: {
-            model: process.env.OPENAI_MODEL || 'gpt-4',
+            model: OPENAI_MODEL,
             temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
             maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS || '2000'),
           },
