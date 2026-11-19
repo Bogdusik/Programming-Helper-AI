@@ -1,5 +1,4 @@
-import { memo } from 'react'
-import { escapeHtml } from '@/lib/utils'
+import { memo, type ReactNode } from 'react'
 
 interface MessageProps {
   role: 'user' | 'assistant'
@@ -7,82 +6,122 @@ interface MessageProps {
   timestamp: Date
 }
 
-// Simple function to parse and render markdown code blocks
-function renderMessageContent(content: string, isUser: boolean) {
-  // Split content by code blocks
-  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g
-  const parts: Array<{ type: 'text' | 'code'; content: string; language?: string }> = []
+// A small Markdown subset for model answers: fenced code, headings, lists, **bold** and `code`.
+// Everything is built as React elements, so text from the model is never parsed as HTML.
+
+function renderInline(text: string, isUser: boolean): ReactNode[] {
+  const nodes: ReactNode[] = []
+  const pattern = /(`[^`\n]+`|\*\*[^*\n]+\*\*)/g
   let lastIndex = 0
-  let match
+  let match: RegExpExecArray | null
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index))
+    const token = match[0]
+    if (token.startsWith('`')) {
+      nodes.push(
+        <code
+          key={match.index}
+          className={`px-1.5 py-0.5 rounded font-mono text-[0.85em] ${isUser ? 'bg-black/25' : 'bg-black/30 text-blue-200'}`}
+        >
+          {token.slice(1, -1)}
+        </code>
+      )
+    } else {
+      nodes.push(<strong key={match.index} className="font-semibold">{token.slice(2, -2)}</strong>)
+    }
+    lastIndex = pattern.lastIndex
+  }
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex))
+  return nodes
+}
+
+function renderText(text: string, isUser: boolean, keyPrefix: string): ReactNode[] {
+  const blocks: ReactNode[] = []
+  const lines = text.split('\n')
+  let paragraph: string[] = []
+  let list: { ordered: boolean; items: string[] } | null = null
+
+  const flushParagraph = () => {
+    if (paragraph.length === 0) return
+    const lineNodes = paragraph.flatMap((line, i) => (i === 0 ? renderInline(line, isUser) : ['\n', ...renderInline(line, isUser)]))
+    blocks.push(
+      <p key={`${keyPrefix}-p${blocks.length}`} className="text-sm leading-relaxed whitespace-pre-wrap">
+        {lineNodes}
+      </p>
+    )
+    paragraph = []
+  }
+  const flushList = () => {
+    if (!list) return
+    const items = list.items.map((item, i) => <li key={i}>{renderInline(item, isUser)}</li>)
+    const className = `text-sm leading-relaxed space-y-1 pl-5 ${list.ordered ? 'list-decimal' : 'list-disc'}`
+    blocks.push(
+      list.ordered
+        ? <ol key={`${keyPrefix}-l${blocks.length}`} className={className}>{items}</ol>
+        : <ul key={`${keyPrefix}-l${blocks.length}`} className={className}>{items}</ul>
+    )
+    list = null
+  }
+
+  for (const line of lines) {
+    const heading = /^(#{1,6})\s+(.*)$/.exec(line)
+    const ordered = /^\s*\d+[.)]\s+(.*)$/.exec(line)
+    const bullet = /^\s*[-*]\s+(.*)$/.exec(line)
+
+    if (heading) {
+      flushParagraph()
+      flushList()
+      blocks.push(
+        <h4 key={`${keyPrefix}-h${blocks.length}`} className="text-sm font-semibold text-white mt-1">
+          {renderInline(heading[2], isUser)}
+        </h4>
+      )
+    } else if (ordered || bullet) {
+      flushParagraph()
+      const isOrdered = Boolean(ordered)
+      if (list && list.ordered !== isOrdered) flushList()
+      if (!list) list = { ordered: isOrdered, items: [] }
+      list.items.push((ordered ?? bullet)![1])
+    } else if (line.trim() === '') {
+      flushParagraph()
+      flushList()
+    } else if (list && /^\s{2,}\S/.test(line)) {
+      list.items[list.items.length - 1] += ` ${line.trim()}`
+    } else {
+      flushList()
+      paragraph.push(line)
+    }
+  }
+  flushParagraph()
+  flushList()
+  return blocks
+}
+
+function renderMessageContent(content: string, isUser: boolean) {
+  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g
+  const parts: ReactNode[] = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
 
   while ((match = codeBlockRegex.exec(content)) !== null) {
-    // Add text before code block
-    if (match.index > lastIndex) {
-      const textContent = content.substring(lastIndex, match.index)
-      if (textContent.trim()) {
-        parts.push({ type: 'text', content: textContent })
-      }
-    }
-    
-    // Add code block
-    parts.push({
-      type: 'code',
-      content: match[2],
-      language: match[1] || 'text'
-    })
-    
+    if (match.index > lastIndex) parts.push(...renderText(content.slice(lastIndex, match.index), isUser, `t${parts.length}`))
+    parts.push(
+      <div key={`c${match.index}`} className={`rounded-lg overflow-hidden ${isUser ? 'bg-black/30' : 'bg-black/20'}`}>
+        {match[1] && (
+          <div className={`px-3 py-1 text-xs font-mono ${isUser ? 'text-blue-200' : 'text-white/70'} border-b border-white/10`}>
+            {match[1]}
+          </div>
+        )}
+        <pre className={`p-3 overflow-x-auto text-xs font-mono ${isUser ? 'text-white' : 'text-white/90'}`}>
+          <code>{match[2]}</code>
+        </pre>
+      </div>
+    )
     lastIndex = codeBlockRegex.lastIndex
   }
-  
-  // Add remaining text
-  if (lastIndex < content.length) {
-    const textContent = content.substring(lastIndex)
-    if (textContent.trim()) {
-      parts.push({ type: 'text', content: textContent })
-    }
-  }
-  
-  // If no code blocks found, return original content (escaped for security)
-  if (parts.length === 0) {
-    return <p className="text-sm leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: escapeHtml(content) }} />
-  }
-  
-  // Render parts
-  return (
-    <div className="space-y-2">
-      {parts.map((part, index) => {
-        if (part.type === 'code') {
-          return (
-            <div key={index} className={`rounded-lg overflow-hidden ${
-              isUser ? 'bg-black/30' : 'bg-black/20'
-            }`}>
-              {part.language && (
-                <div className={`px-3 py-1 text-xs font-mono ${
-                  isUser ? 'text-blue-200' : 'text-white/70'
-                } border-b border-white/10`}>
-                  {part.language}
-                </div>
-              )}
-              <pre className={`p-3 overflow-x-auto text-xs font-mono ${
-                isUser ? 'text-white' : 'text-white/90'
-              }`}>
-                <code>{part.content}</code>
-              </pre>
-            </div>
-          )
-        } else {
-          // Escape HTML in text content to prevent XSS
-          return (
-            <p 
-              key={index} 
-              className="text-sm leading-relaxed whitespace-pre-wrap"
-              dangerouslySetInnerHTML={{ __html: escapeHtml(part.content) }}
-            />
-          )
-        }
-      })}
-    </div>
-  )
+  if (lastIndex < content.length) parts.push(...renderText(content.slice(lastIndex), isUser, `t${parts.length}`))
+
+  return <div className="space-y-2">{parts}</div>
 }
 
 // OPTIMIZATION: Memoize Message component to prevent unnecessary re-renders

@@ -89,5 +89,47 @@ describe('Message Component', () => {
     
     expect(screen.getByText(timestamp.toLocaleTimeString())).toBeInTheDocument()
   })
-})
 
+  describe('markdown in assistant answers', () => {
+    const render = (content: string) =>
+      renderWithProviders(<Message role="assistant" content={content} timestamp={new Date()} />)
+
+    it('renders **bold** as <strong> without the asterisks', () => {
+      const { container } = render('Binary search is **O(log n)** on sorted data.')
+      const strong = container.querySelector('strong')
+      expect(strong).toHaveTextContent('O(log n)')
+      expect(container).not.toHaveTextContent('**')
+    })
+
+    it('renders `inline code` as <code>', () => {
+      const { container } = render('Use `Array.prototype.includes` here.')
+      expect(container.querySelector('p code')).toHaveTextContent('Array.prototype.includes')
+    })
+
+    it('renders numbered and bulleted lists', () => {
+      const { container } = render('Steps:\n1. Sort the array\n2. Split it in half\n\n- fast\n- simple')
+      expect(container.querySelectorAll('ol > li')).toHaveLength(2)
+      expect(container.querySelectorAll('ul > li')).toHaveLength(2)
+      expect(screen.getByText('Split it in half')).toBeInTheDocument()
+    })
+
+    it('renders headings without the hashes', () => {
+      const { container } = render('### Time complexity\nIt is logarithmic.')
+      expect(container.querySelector('h3, h4, h5, h6')).toHaveTextContent('Time complexity')
+      expect(container).not.toHaveTextContent('###')
+    })
+
+    it('keeps fenced code blocks with their language label', () => {
+      const { container } = render('Example:\n```js\nconst x = **1**\n```')
+      expect(screen.getByText('js')).toBeInTheDocument()
+      expect(container.querySelector('pre code')).toHaveTextContent('const x = **1**')
+    })
+
+    it('renders HTML in the answer as text, not markup', () => {
+      const { container } = render('<img src=x onerror=alert(1)> and <script>alert(1)</script>')
+      expect(container.querySelector('img')).toBeNull()
+      expect(container.querySelector('script')).toBeNull()
+      expect(container).toHaveTextContent('<script>alert(1)</script>')
+    })
+  })
+})
